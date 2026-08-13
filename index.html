@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#061f34">
-  <meta name="description" content="Urban Stay Platform v1.0 RC5.3 External Test.1 External Test, centro de control profesional para propiedades y experiencia del huésped.">
-  <title>Urban Stay Platform · v1.0 RC5.3 External Test.1 External Test</title>
+  <meta name="description" content="Urban Stay Platform v1.0 RC5.6 External Test.1 External Test, centro de control profesional para propiedades y experiencia del huésped.">
+  <title>Urban Stay Platform · v1.0 RC5.6 External Test.1 External Test</title>
   <link rel="stylesheet" href="styles/app.css">
 </head>
 <body>
@@ -59,7 +59,7 @@
     <div class="system-card">
       <div><i></i><b data-i18n="systemOnline">Sistema operativo</b></div>
       <small data-i18n="allWorking">Todo funcionando correctamente</small>
-      <span>Platform v1.0 RC5.3 External Test.1 External Test</span>
+      <span>Platform v1.0 RC5.6 External Test.1 External Test</span>
     </div>
   </aside>
 
@@ -142,7 +142,7 @@
   </div>
 </dialog>
 <dialog id="feedbackDialog" class="feedback-dialog"><form method="dialog" id="feedbackForm">
-<div class="feedback-head"><div><span class="section-label">PRUEBA DE USUARIO</span><h2>¿Qué tal ha sido crear tu propiedad?</h2></div><button value="cancel" class="final-preview-close">×</button></div>
+<div class="feedback-head"><div><span class="section-label">PRUEBA DE USUARIO</span><h2>¿Qué tal ha sido crear tu propiedad?</h2></div><button type="button" id="closeFeedbackDialog" class="final-preview-close" aria-label="Cerrar">×</button></div>
 <label>¿Te ha resultado fácil?<select id="fbEase"><option value="5">Muy fácil</option><option value="4">Fácil</option><option value="3">Normal</option><option value="2">Difícil</option><option value="1">Muy difícil</option></select></label>
 <label>¿Dónde has tenido más dudas?<textarea id="fbDoubts" placeholder="Cuéntanos en qué paso te has parado o dudado"></textarea></label>
 <label>¿Qué has echado en falta?<textarea id="fbMissing" placeholder="Algo que añadirías o cambiarías"></textarea></label>
@@ -151,7 +151,7 @@
   <b>¡Gracias! Tu prueba está terminada.</b>
   <p>Como esta versión aún no tiene servidor, copia este resumen y envíaselo a la persona que te invitó a probar Urban Stay.</p>
   <textarea id="feedbackSummary" readonly></textarea>
-  <button type="button" class="btn secondary" id="copyFeedbackSummary">Copiar resumen de la prueba</button>
+  <div class="feedback-complete-actions"><button type="button" class="btn secondary" id="copyFeedbackSummary">Copiar resumen de la prueba</button><button type="button" class="btn primary" id="finishFeedback">Cerrar y volver al Dashboard</button></div>
 </div></form></dialog>
 <dialog id="modal"><button class="dialog-close" id="closeModal" aria-label="Cerrar">×</button><div id="modalContent"></div></dialog>
   <div class="toast" id="toast" role="status"></div>

@@ -27,7 +27,7 @@ const state={
 const tr=k=>(I18N[state.lang]||I18N.es)[k]||I18N.es[k]||k;
 
 
-const CLEANUP_KEY='usp-rc53-cleanup-done';
+const CLEANUP_KEY='usp-rc56-cleanup-done';
 function cleanupLegacyTestData(){
  if(localStorage.getItem(CLEANUP_KEY)==='1')return;
  try{
@@ -80,7 +80,7 @@ function deleteProperty(id){
 }
 function blankDraft(){
  return {
-  name:'',address:'',city:'Vigo',postal:'',country:'España',guests:'',bedrooms:'',bathrooms:'',
+  name:'',address:'',city:'',postal:'',country:'',guests:'',bedrooms:'',bathrooms:'',
   template:'urban-classic',logo:'',photos:[],coverIndex:0,bedSummary:'',
   amenities:{tvBedrooms:false,bedLinen:true,towels:true,smartTv:false,lift:false,fridge:true,freezer:false,oven:false,microwave:true,dishwasher:false,washingMachine:true,coffeeMaker:true,toaster:false,sandwichMaker:false,kettle:false,kitchenware:true,dishes:true,cutlery:true,potsPans:true,wineGlasses:false,hairDryer:false,toiletries:false,heating:true,airConditioning:false,crib:false,highChair:false,pets:false},
   wifiName:'',wifiPassword:'',accessType:'Llaves',accessNotes:'',
@@ -203,6 +203,7 @@ function moderationAction(id,status){
  p.status=status;p.moderation={...(p.moderation||{}),reviewedAt:new Date().toISOString()};
  saveUserProps(props);track('moderation_action',{id,status});render();toast(status==='approved'?'Propiedad aprobada':'Cambios solicitados');
 }
+function closeFeedbackDialog(){const dlg=$('#feedbackDialog');if(dlg?.open)dlg.close();state.route='dashboard';render()}
 function openFeedback(){
  const dlg=$('#feedbackDialog');if(dlg&&!dlg.open)dlg.showModal();
 }
@@ -277,7 +278,7 @@ function dashboard(){
  return `<section class="page"><div class="command-hero"><div><span class="overline">URBAN STAY PLATFORM · EXTERNAL TEST</span><h1>${greeting}</h1><p>${tr('intro')}</p></div><div class="hero-actions">${state.admin?`<button class="btn secondary" id="openModeration">🛡 Revisión Urban Stay</button>`:'' }<button class="btn primary" id="newPropertyTop">＋ ${tr('add')}</button></div></div>
  <div class="overview-grid"><article class="overview-card"><span class="overview-icon">⌂</span><div><small>PROPIEDADES</small><strong>${allProps().length}</strong><em>Portfolio activo</em></div></article><article class="overview-card"><span class="overview-icon">✓</span><div><small>ESTADO</small><strong>OK</strong><em>Núcleo estable</em></div></article><article class="overview-card"><span class="overview-icon">👁</span><div><small>PREVIEW</small><strong>LIVE</strong><em>Durante el alta</em></div></article><article class="overview-card"><span class="overview-icon">🌐</span><div><small>IDIOMAS</small><strong>6</strong><em>Interfaz</em></div></article></div>
  <div class="dashboard-grid dashboard-grid--v07"><article class="card portfolio-card"><div class="card-head"><div><div class="section-label">MIS PROPIEDADES</div><h2>Portfolio</h2></div></div>${allProps().map(propertyCard).join('')}<button class="btn secondary full-button" id="newProperty">＋ ${tr('add')}</button></article>
- <article class="card"><div class="section-label">PRUEBA v1.0 RC5.3 External Test.1 External Test</div><h2>Flujo recomendado</h2><p>Registra una cuenta, crea una propiedad, cambia de plantilla y usa la vista previa mientras completas los datos.</p><div class="quality-list"><span>✓ Registro estable</span><span>✓ Plantillas seleccionables</span><span>✓ Fotos y logo</span><span>✓ Parking por opciones</span><span>✓ Agenda</span><span>✓ Preview en vivo</span></div></article></div></section>`;
+ <article class="card"><div class="section-label">PRUEBA v1.0 RC5.6 External Test.1 External Test</div><h2>Flujo recomendado</h2><p>Registra una cuenta, crea una propiedad, cambia de plantilla y usa la vista previa mientras completas los datos.</p><div class="quality-list"><span>✓ Registro estable</span><span>✓ Plantillas seleccionables</span><span>✓ Fotos y logo</span><span>✓ Parking por opciones</span><span>✓ Agenda</span><span>✓ Preview en vivo</span></div></article></div></section>`;
 }
 function properties(){
  return `<section class="page"><div class="page-title"><div><h1>${tr('properties')}</h1><p>Todos tus alojamientos desde un único lugar.</p></div><button class="btn primary" id="newPropertyTop">＋ ${tr('add')}</button></div><div class="property-list card">${allProps().map(propertyCard).join('')}</div></section>`;
@@ -322,10 +323,32 @@ function parkingCard(key,title,icon,placeholder){
 function templateCard(key,name,desc,cls,origin){
  return `<label class="template-card ${draft.template===key?'selected':''}"><input type="radio" name="template" data-template="${key}" ${draft.template===key?'checked':''}><div class="template-preview ${cls}"><span>URBAN STAY</span><b>${name}</b><i></i><i></i><i></i></div><div class="template-copy"><strong>${name}</strong><small>${desc}</small><em>${origin}</em></div></label>`;
 }
+
+function photoGalleryMarkup(){
+ return (draft.photos||[]).map((p,i)=>`<article class="uploaded-photo ${i===draft.coverIndex?'is-cover':''}" data-photo-card="${i}"><img src="${p}" alt="Foto ${i+1}" loading="lazy"><div class="uploaded-photo-actions"><button type="button" data-cover="${i}">${i===draft.coverIndex?'★ Portada':'☆ Portada'}</button><button type="button" data-remove="${i}">Eliminar</button></div></article>`).join('');
+}
+function bindPhotoActionButtons(){
+ $$('[data-cover]').forEach(b=>b.onclick=()=>{
+   draft.coverIndex=Number(b.dataset.cover);saveDraft();refreshMediaStep();try{updatePreview()}catch{}
+ });
+ $$('[data-remove]').forEach(b=>b.onclick=()=>{
+   draft.photos.splice(Number(b.dataset.remove),1);
+   draft.coverIndex=Math.min(draft.coverIndex,Math.max(0,draft.photos.length-1));
+   saveDraft();refreshMediaStep();try{updatePreview()}catch{}
+ });
+}
+function refreshMediaStep(){
+ const gallery=$('#uploadedGallery'),count=$('#photoCount'),logo=$('#logoUploadPreview');
+ if(gallery)gallery.innerHTML=photoGalleryMarkup();
+ if(count)count.textContent=`${draft.photos.length} fotos`;
+ if(logo)logo.innerHTML=draft.logo?`<img src="${draft.logo}" alt="Logo"><span>Cambiar logo</span>`:`<span class="upload-plus">＋</span><b>Subir logo</b><small>PNG, JPG o WEBP</small>`;
+ bindPhotoActionButtons();
+}
+
 function stepHtml(key){
- if(key==='identity')return `<div class="wizard-intro"><span class="wizard-icon">⌂</span><div><h3>Datos básicos</h3><p>Lo mínimo para empezar a construir tu guía.</p></div></div><div class="form-grid wizard-form">${fld('Nombre del alojamiento','name','text','Ej. Apartamento Centro Vigo')}${fld('Ciudad','city')}${fld('Dirección','address','text','Calle, número')}${fld('Código postal','postal')}${fld('País','country')}${fld('Capacidad máxima','guests','number','6')}${fld('Habitaciones','bedrooms','number','3')}${fld('Baños','bathrooms','number','2')}${fld('URL deseada','slug','text','apartamento-centro')}</div>`;
+ if(key==='identity')return `<div class="wizard-intro"><span class="wizard-icon">⌂</span><div><h3>Datos básicos</h3><p>Lo mínimo para empezar a construir tu guía.</p></div></div><div class="form-grid wizard-form">${fld('Nombre del alojamiento','name','text','Ej. Apartamento Centro')}${fld('Ciudad','city','text','Ej. Vigo')}${fld('Dirección','address','text','Calle, número')}${fld('Código postal','postal')}<div class="field"><label>País</label><select data-bind="country"><option value="">Selecciona país</option>${['España','Portugal','Francia','Italia','Alemania','Reino Unido','Otro'].map(x=>`<option value="${x}" ${draft.country===x?'selected':''}>${x}</option>`).join('')}</select></div>${fld('Capacidad máxima','guests','number','Ej. 6')}${fld('Habitaciones','bedrooms','number','Ej. 3')}${fld('Baños','bathrooms','number','Ej. 2')}${fld('URL deseada','slug','text','apartamento-centro')}</div>`;
  if(key==='template')return `<div class="wizard-intro"><span class="wizard-icon">◇</span><div><h3>Elige el diseño</h3><p>Las cuatro plantillas son seleccionables y la vista previa cambia al instante.</p></div></div><div class="template-grid">${templateCard('urban-classic','Urban Classic','Limpia y urbana.','template-preview--classic','Inspirada en Barcelona 80')}${templateCard('urban-premium','Urban Premium','Cálida y editorial.','template-preview--premium','Inspirada en Zamora 89')}${templateCard('boutique','Boutique','Minimalista y fotográfica.','template-preview--boutique','Nueva plantilla')}${templateCard('mediterranean','Mediterranean','Luminosa y fresca.','template-preview--med','Nueva plantilla')}</div>`;
- if(key==='photos')return `<div class="wizard-intro"><span class="wizard-icon">▣</span><div><h3>Fotos y logo</h3><p>Sube imágenes reales y comprueba el resultado en la vista previa.</p></div></div><div class="media-section"><b>Logo del alojamiento o empresa</b><label class="logo-upload-box"><input id="logoInput" type="file" accept="image/*"><div>${draft.logo?`<img src="${draft.logo}" alt="Logo"><span>Cambiar logo</span>`:`<span class="upload-plus">＋</span><b>Subir logo</b><small>PNG, JPG o WEBP</small>`}</div></label></div><div class="media-section"><div class="media-section-head"><b>Fotografías</b><span class="photo-count">${draft.photos.length} fotos</span></div><label class="real-upload-drop"><input id="photosInput" type="file" accept="image/*" multiple><span class="upload-plus">＋</span><b>Subir fotografías</b><small>Puedes seleccionar varias</small></label><div class="uploaded-gallery">${draft.photos.map((p,i)=>`<article class="uploaded-photo ${i===draft.coverIndex?'is-cover':''}"><img src="${p}"><div class="uploaded-photo-actions"><button type="button" data-cover="${i}">${i===draft.coverIndex?'★ Portada':'☆ Portada'}</button><button type="button" data-remove="${i}">Eliminar</button></div></article>`).join('')}</div></div>`;
+ if(key==='photos')return `<div class="wizard-intro"><span class="wizard-icon">▣</span><div><h3>Fotos y logo</h3><p>Sube imágenes reales y comprueba el resultado en la vista previa.</p></div></div><div class="media-section"><b>Logo del alojamiento o empresa</b><label class="logo-upload-box"><input id="logoInput" type="file" accept="image/jpeg,image/png,image/webp"><div id="logoUploadPreview">${draft.logo?`<img src="${draft.logo}" alt="Logo"><span>Cambiar logo</span>`:`<span class="upload-plus">＋</span><b>Subir logo</b><small>PNG, JPG o WEBP</small>`}</div></label></div><div class="media-section"><div class="media-section-head"><b>Fotografías</b><span class="photo-count" id="photoCount">${draft.photos.length} fotos</span></div><label class="real-upload-drop"><input id="photosInput" type="file" accept="image/jpeg,image/png,image/webp" multiple><span class="upload-plus">＋</span><b>Subir fotografías</b><small>Puedes seleccionar varias · máximo 12</small></label><div class="upload-status" id="photoUploadStatus"></div><div class="uploaded-gallery" id="uploadedGallery">${photoGalleryMarkup()}</div></div>`;
  if(key==='equipment')return `<div class="wizard-intro"><span class="wizard-icon">▦</span><div><h3>Equipamiento</h3><p>Marca lo que realmente tiene tu alojamiento.</p></div></div><div class="form-grid wizard-form"><div class="field full"><label>Resumen de camas</label><textarea data-bind="bedSummary" placeholder="Ej. 2 camas dobles + 2 individuales">${esc(draft.bedSummary)}</textarea></div></div><div class="amenity-groups"><section class="amenity-group"><h4>Dormitorios</h4><div class="amenity-grid">${amenity('tvBedrooms','TV en habitaciones','📺')}${amenity('bedLinen','Juegos de cama','🛏')}${amenity('towels','Toallas','🧺')}${amenity('heating','Calefacción','♨')}${amenity('airConditioning','Aire acondicionado','❄')}</div></section><section class="amenity-group"><h4>Salón</h4><div class="amenity-grid">${amenity('smartTv','Smart TV','📺')}</div></section><section class="amenity-group"><h4>Cocina</h4><div class="amenity-grid">${amenity('fridge','Nevera','🧊')}${amenity('freezer','Congelador','❄')}${amenity('oven','Horno','🔥')}${amenity('microwave','Microondas','◫')}${amenity('dishwasher','Lavavajillas','◉')}${amenity('washingMachine','Lavadora','◉')}${amenity('coffeeMaker','Cafetera','☕')}${amenity('toaster','Tostadora','▤')}${amenity('sandwichMaker','Sandwichera','▱')}${amenity('kettle','Hervidor','♨')}${amenity('kitchenware','Menaje','🍽')}${amenity('dishes','Vajilla','🍽')}${amenity('cutlery','Cubiertos','🍴')}${amenity('potsPans','Ollas y sartenes','◉')}${amenity('wineGlasses','Copas de vino','🍷')}</div></section><section class="amenity-group"><h4>Edificio y accesibilidad</h4><div class="amenity-grid">${amenity('lift','Ascensor','↕')}</div></section><section class="amenity-group"><h4>Baño y familia</h4><div class="amenity-grid">${amenity('hairDryer','Secador','♨')}${amenity('toiletries','Gel y champú','🧴')}${amenity('crib','Cuna','◫')}${amenity('highChair','Trona','♧')}${amenity('pets','Admite mascotas','🐾')}</div></section></div>`;
  if(key==='wifi')return `<div class="wizard-intro"><span class="wizard-icon">⌁</span><div><h3>WiFi y acceso</h3><p>Información práctica para reducir preguntas antes de la llegada.</p></div></div><div class="form-grid wizard-form">${fld('Red WiFi','wifiName')}${fld('Contraseña WiFi','wifiPassword')}<div class="field"><label>Tipo de acceso</label><select data-bind="accessType">${['Llaves','Caja de llaves','Smart Lock','Recepción'].map(x=>`<option ${draft.accessType===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="field full"><label>Instrucciones</label><textarea data-bind="accessNotes">${esc(draft.accessNotes)}</textarea></div></div>`;
  if(key==='parking')return `<div class="wizard-intro"><span class="wizard-icon">P</span><div><h3>Aparcamiento</h3><p>Activa todas las opciones disponibles y añade información distinta para cada una.</p></div></div><div class="parking-detail-list">${parkingCard('free','Aparcamiento gratuito','🚗','Calles recomendadas, restricciones...')}${parkingCard('ora','Zona regulada / ORA','🅿','Horarios, precio, app, límites...')}${parkingCard('private','Parking privado','🔑','Dirección, plaza, acceso, altura...')}${parkingCard('public','Parking público cercano','🏢','Nombre, dirección, precio, distancia...')}${parkingCard('ev','Carga de vehículo eléctrico','⚡','Ubicación, potencia, conector, coste...')}</div>`;
@@ -438,24 +461,70 @@ function bindWizard(){
    try{updatePreview()}catch(err){console.warn('preview parking info',err)}
  });
  const ev=$('#eventsToggle');if(ev)ev.onchange=()=>{draft.events=ev.checked;saveDraft();const wrap=ev.closest('.agenda-switch');const tg=wrap?.querySelector('.toggle');if(tg)tg.classList.toggle('on',ev.checked);const sm=wrap?.querySelector('small');if(sm)sm.textContent=ev.checked?'Activada':'Desactivada';updatePreview()};
- const logo=$('#logoInput');if(logo)logo.onchange=e=>readOne(e.target.files[0],v=>{draft.logo=v;saveDraft();renderWizard()});
- const photos=$('#photosInput');if(photos)photos.onchange=e=>readMany(e.target.files,vals=>{draft.photos=[...draft.photos,...vals].slice(0,12);saveDraft();renderWizard()});
- $$('[data-cover]').forEach(b=>b.onclick=()=>{draft.coverIndex=Number(b.dataset.cover);saveDraft();renderWizard()});
- $$('[data-remove]').forEach(b=>b.onclick=()=>{draft.photos.splice(Number(b.dataset.remove),1);draft.coverIndex=Math.min(draft.coverIndex,Math.max(0,draft.photos.length-1));saveDraft();renderWizard()});
+ const logo=$('#logoInput');if(logo)logo.onchange=async e=>{
+   const file=e.target.files?.[0],status=$('#photoUploadStatus');
+   if(!file)return;
+   if(status)status.textContent='Procesando logo…';
+   try{
+     draft.logo=await compressImage(file,600,.72);
+     saveDraft();refreshMediaStep();try{updatePreview()}catch{}
+     if(status)status.textContent='✓ Logo añadido';
+   }catch(err){
+     console.error('Logo upload failed',err);
+     if(status)status.textContent='No se pudo procesar el logo. Prueba con JPG, PNG o WEBP.';
+     toast('No se pudo procesar el logo.');
+   }finally{logo.value=''}
+ };
+ const photos=$('#photosInput');if(photos)photos.onchange=async e=>{
+   const files=[...(e.target.files||[])],status=$('#photoUploadStatus');
+   if(!files.length)return;
+   if(status)status.textContent='Procesando fotografías…';
+   const slots=Math.max(0,12-draft.photos.length);
+   if(!slots){if(status)status.textContent='Ya has alcanzado el máximo de 12 fotos.';photos.value='';return}
+   const selected=files.slice(0,slots),vals=[];
+   for(const file of selected){
+     try{vals.push(await compressImage(file,900,.60))}
+     catch(err){console.error('Photo upload failed',file?.name,err)}
+   }
+   if(vals.length){
+     draft.photos=[...draft.photos,...vals];
+     saveDraft();refreshMediaStep();try{updatePreview()}catch{}
+     if(status)status.textContent=`✓ ${vals.length} foto(s) añadida(s)${vals.length<selected.length?' · alguna no pudo procesarse':''}`;
+   }else{
+     if(status)status.textContent='No se pudo procesar ninguna foto. Prueba con JPG, PNG o WEBP.';
+     toast('No se pudieron procesar las fotografías.');
+   }
+   photos.value='';
+ };
+ bindPhotoActionButtons();
  $$('[data-device]').forEach(b=>b.onclick=()=>{state.previewDevice=b.dataset.device;$$('[data-device]').forEach(x=>x.classList.toggle('active',x.dataset.device===state.previewDevice));const phone=$('#guestPhone');if(phone)phone.classList.toggle('desktop',state.previewDevice==='desktop')});
  $('#openPreviewFromReview')?.addEventListener('click',openFinalPreview);
  $('#wizardPreviewToggle')?.addEventListener('click',()=>{state.previewOpen=!state.previewOpen;const panel=$('#wizardLivePanel');if(panel)panel.classList.toggle('open',state.previewOpen)});
  $('#closeLivePreview')?.addEventListener('click',()=>{state.previewOpen=false;const panel=$('#wizardLivePanel');if(panel)panel.classList.remove('open')});
 }
-function compressImage(file,maxSide=1400,quality=.78){return new Promise((resolve,reject)=>{const r=new FileReader();r.onerror=reject;r.onload=()=>{const img=new Image();img.onerror=reject;img.onload=()=>{let w=img.naturalWidth,h=img.naturalHeight;const scale=Math.min(1,maxSide/Math.max(w,h));w=Math.max(1,Math.round(w*scale));h=Math.max(1,Math.round(h*scale));const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);resolve(c.toDataURL('image/jpeg',quality));};img.src=r.result;};r.readAsDataURL(file);});}
-function readOne(file,cb){if(!file||!file.type.startsWith('image/'))return;compressImage(file,700,.82).then(cb).catch(()=>toast('No se pudo procesar esa imagen.'))}
-function readMany(files,cb){
- const arr=[...files].filter(f=>['image/jpeg','image/png','image/webp'].includes(f.type)).slice(0,12);
- if(!arr.length){toast('Usa fotos JPG, PNG o WEBP.');return}
- Promise.allSettled(arr.map(f=>compressImage(f,1100,.68))).then(results=>{
-   const ok=results.filter(r=>r.status==='fulfilled').map(r=>r.value);
-   if(ok.length)cb(ok);
-   if(ok.length<arr.length)toast('Alguna foto no pudo procesarse; las demás sí se añadieron.');
+function compressImage(file,maxSide=1000,quality=.65){
+ return new Promise((resolve,reject)=>{
+  if(!file||file.size===0)return reject(new Error('empty'));
+  const r=new FileReader();
+  r.onerror=()=>reject(new Error('read'));
+  r.onload=()=>{
+   const img=new Image();
+   img.onerror=()=>reject(new Error('image'));
+   img.onload=()=>{
+    try{
+     let w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
+     if(!w||!h)return reject(new Error('dimensions'));
+     const scale=Math.min(1,maxSide/Math.max(w,h));
+     w=Math.max(1,Math.round(w*scale));h=Math.max(1,Math.round(h*scale));
+     const c=document.createElement('canvas');c.width=w;c.height=h;
+     const ctx=c.getContext('2d',{alpha:false});if(!ctx)return reject(new Error('canvas'));
+     ctx.drawImage(img,0,0,w,h);
+     resolve(c.toDataURL('image/jpeg',quality));
+    }catch(err){reject(err)}
+   };
+   img.src=r.result;
+  };
+  r.readAsDataURL(file);
  });
 }
 function createProperty(){
@@ -495,13 +564,15 @@ function boot(){
  $('#finalPreviewDone')?.addEventListener('click',closeFinalPreview);
  $('#finalPreviewMobile')?.addEventListener('click',()=>setFinalPreviewDevice('mobile'));
  $('#finalPreviewDesktop')?.addEventListener('click',()=>setFinalPreviewDevice('desktop'));
+ $('#closeFeedbackDialog')?.addEventListener('click',closeFeedbackDialog);
+ $('#finishFeedback')?.addEventListener('click',closeFeedbackDialog);
  $('#saveFeedback')?.addEventListener('click',()=>{
    const row={ease:$('#fbEase')?.value,doubts:$('#fbDoubts')?.value||'',missing:$('#fbMissing')?.value||'',at:new Date().toISOString()};
    try{const a=JSON.parse(localStorage.getItem(KEYS.feedback)||'[]');a.push(row);localStorage.setItem(KEYS.feedback,JSON.stringify(a))}catch{}
    track('feedback_submitted',{ease:row.ease});
    const sum=buildTestSummary(row),ta=$('#feedbackSummary'),box=$('#feedbackResult');
-   if(ta)ta.value=sum;if(box)box.hidden=false;
-   $('#saveFeedback').disabled=true;toast('Gracias. Ya puedes copiar el resumen de la prueba.');
+   if(ta)ta.value=sum;if(box){box.hidden=false;box.scrollIntoView({behavior:'smooth',block:'start'})}
+   $('#saveFeedback').disabled=true;toast('Gracias. Ya puedes copiar el resumen de la prueba o volver al Dashboard.');
  });
  $('#copyFeedbackSummary')?.addEventListener('click',async()=>{
    const text=$('#feedbackSummary')?.value||'';
@@ -513,6 +584,7 @@ function boot(){
  $('#wizardNext')?.addEventListener('click',()=>{if(state.wizardStep<STEPS.length-1){state.wizardStep++;renderWizard()}else createProperty()});
  $('#ownerLanguage')?.addEventListener('change',e=>{state.lang=e.target.value;localStorage.setItem(KEYS.lang,state.lang);render()});
  $('#mobileMenu')?.addEventListener('click',()=>$('#sidebar')?.classList.toggle('open'));
+ $('#feedbackDialog')?.addEventListener('cancel',e=>{e.preventDefault();closeFeedbackDialog()});
  const logged=localStorage.getItem(KEYS.session)==='1'&&getOwner();
  if(logged)hideOnboarding(); else showOnboarding(getOwner()?'login':'welcome');
  applyStatic();render();

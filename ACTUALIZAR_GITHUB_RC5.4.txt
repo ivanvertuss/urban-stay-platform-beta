@@ -1,0 +1,10 @@
+ACTUALIZAR LA BETA EN GITHUB
+
+1. Abre el repositorio urban-stay-platform-beta.
+2. Pulsa Add file > Upload files.
+3. Sube el contenido de esta RC5.4 sustituyendo los archivos existentes.
+4. Commit recomendado:
+   Urban Stay Platform RC5.4 - inputs and photos fix
+5. GitHub Pages se actualizará automáticamente después del commit.
+
+No necesitas cambiar la configuración de Pages.

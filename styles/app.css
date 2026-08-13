@@ -515,3 +515,15 @@ body.onboarding-open{overflow:hidden}
 .feedback-result{margin-top:5px;padding:15px;border:1px solid #b9ddbe;border-radius:13px;background:#f3faf4}.feedback-result b{color:#397b43}.feedback-result p{font-size:11px;color:#65756b;line-height:1.5}
 .feedback-result textarea{width:100%;min-height:210px;margin:10px 0;background:#fff;font-family:ui-monospace,monospace;font-size:10px}
 @media(max-width:650px){.external-guide-grid{grid-template-columns:1fr 1fr}.external-guide-hero{padding:32px 24px}.external-guide-hero h1{font-size:34px}.external-demo-shell footer span{display:none}}
+
+/* RC5.4 - clean inputs + safer photo uploader */
+.upload-status{min-height:22px;margin-top:9px;color:#3f7d4b;font-size:11px;font-weight:800}
+.field select:invalid{color:#8b98a3}
+.real-upload-drop{position:relative}
+.uploaded-gallery:empty:after{content:"Todavía no has añadido fotografías.";display:block;grid-column:1/-1;padding:18px;text-align:center;color:#8a98a4;background:#f7f9fa;border-radius:12px;font-size:11px}
+
+/* RC5.6 - cierre claro de encuesta final */
+.feedback-complete-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.feedback-complete-actions .btn{flex:1}
+.feedback-dialog{max-height:92vh;overflow:auto}
+@media(max-width:600px){.feedback-complete-actions .btn{width:100%;flex-basis:100%}}

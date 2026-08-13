@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#061f34">
+  <meta name="description" content="Urban Stay Platform v1.0 RC5.3 External Test.1 External Test, centro de control profesional para propiedades y experiencia del huésped.">
+  <title>Urban Stay Platform · v1.0 RC5.3 External Test.1 External Test</title>
+  <link rel="stylesheet" href="styles/app.css">
+</head>
+<body>
+<section class="onboarding" id="onboarding">
+<div class="onboarding-visual">
+  <div class="brand-wordmark brand-wordmark--hero"><span>URBAN STAY</span><b>PLATFORM</b></div>
+  <div class="onboarding-copy"><span>URBAN STAY PLATFORM</span><h1>La guía digital de tu alojamiento, lista en minutos.</h1><p>Crea una experiencia profesional para tus huéspedes sin conocimientos técnicos.</p><div class="onboarding-pills"><b>✓ App instalable</b><b>✓ Multilingüe</b><b>✓ WiFi y parking</b><b>✓ Agenda y restaurantes</b></div></div>
+  <div class="onboarding-proof"><b>2 Living Labs reales</b><b>5 min para empezar</b><b>Diseños profesionales</b></div>
+</div>
+<div class="onboarding-panel">
+  <div class="onboard-stage active external-welcome" data-stage="welcome">
+    <span class="eyebrow">PROGRAMA DE PRUEBAS · URBAN STAY PLATFORM</span>
+    <h2>Queremos saber si crear la guía de un alojamiento puede ser realmente fácil.</h2>
+    <p>Imagina que este es tu alojamiento. Intenta crear su guía digital sin instrucciones. No hay respuestas correctas: nos interesa descubrir qué partes son claras y cuáles debemos mejorar.</p>
+    <div class="test-rules">
+      <div><span>1</span><b>Hazlo por tu cuenta</b><small>Si dudas en algún punto, eso también nos ayuda.</small></div>
+      <div><span>2</span><b>Usa datos de prueba</b><small>No introduzcas contraseñas ni información sensible real.</small></div>
+      <div><span>3</span><b>Cuéntanos qué cambiarías</b><small>Al terminar encontrarás una encuesta muy breve.</small></div>
+    </div>
+    <button type="button" class="btn primary wide external-start" id="startRegistration">Empezar prueba →</button>
+    <button type="button" class="text-btn" id="showLogin">Ya he empezado una prueba</button>
+    <div class="external-demo-box">
+      <span>¿Quieres ver primero qué resultado buscamos?</span>
+      <div>
+        <button type="button" class="demo-link" data-demo-preview="barcelona">Ver ejemplo Barcelona 80</button>
+        <button type="button" class="demo-link" data-demo-preview="zamora">Ver ejemplo Zamora 89</button>
+      </div>
+    </div>
+    <small class="privacy-note">Esta versión de prueba guarda la información únicamente en tu navegador.</small>
+  </div>
+  <div class="onboard-stage" data-stage="register"><button type="button" class="back-btn" data-back="welcome">← Volver</button><span class="eyebrow">CREAR CUENTA</span><h2>Empecemos por conocerte.</h2><div class="reg-grid"><label>Nombre<input id="regFirstName" placeholder="Nombre"></label><label>Apellidos<input id="regLastName" placeholder="Apellidos"></label><label class="full">Correo electrónico<input id="regEmail" type="email" placeholder="nombre@correo.com"></label><label>Teléfono<input id="regPhone" type="tel" placeholder="+34 600 000 000"></label><label>País<select id="regCountry"><option>España</option><option>Portugal</option><option>Francia</option><option>Italia</option><option>Alemania</option><option>Otro</option></select></label><label class="full">Empresa o marca <small>opcional</small><input id="regCompany" placeholder="Ej. Urban Apartments Vigo"></label><label class="full">Contraseña<input id="regPassword" type="password" placeholder="Mínimo 6 caracteres"></label></div><label class="terms"><input id="regTerms" type="checkbox"> Acepto las condiciones de uso de esta versión de prueba.</label><div id="registerMessage" class="form-message"></div><button type="button" class="btn primary wide" id="createAccount">Crear cuenta y continuar</button></div>
+  <div class="onboard-stage" data-stage="login"><button type="button" class="back-btn" data-back="welcome">← Volver</button><span class="eyebrow">ACCESO</span><h2>Bienvenido de nuevo.</h2><div class="reg-grid"><label class="full">Correo electrónico<input id="loginEmail" type="email"></label><label class="full">Contraseña<input id="loginPassword" type="password"></label></div><div id="loginMessage" class="form-message"></div><button type="button" class="btn primary wide" id="loginAccount">Entrar</button></div>
+  <div class="onboard-stage" data-stage="success"><div class="success-orb">✓</div><span class="eyebrow">CUENTA CREADA</span><h2 id="welcomeOwnerName">Bienvenido.</h2><p>Tu espacio Urban Stay ya está preparado. Vamos a crear ahora tu primer alojamiento.</p><div class="steps-preview"><div><span>01</span><b>Crear alojamiento</b></div><div><span>02</span><b>Elegir diseño</b></div><div><span>03</span><b>Ver tu guía</b></div></div><button type="button" class="btn primary wide" id="createFirstProperty">Crear mi primer alojamiento →</button><button type="button" class="text-btn" id="goDashboardInstead">Ir al Dashboard</button></div>
+</div>
+</section>
+  <aside class="sidebar" id="sidebar">
+    <button class="brand" data-route="dashboard" aria-label="Urban Stay Platform">
+      <div class="brand-wordmark"><span>URBAN STAY</span><b>PLATFORM</b></div>
+    </button>
+    <nav class="main-nav" id="mainNav">
+      <button class="nav active" data-route="dashboard"><span>⌂</span><b data-i18n="dashboard">Dashboard</b></button>
+      <button class="nav" data-route="properties"><span>▦</span><b data-i18n="properties">Propiedades</b></button>
+      <button class="nav" data-route="guide"><span>↗</span><b data-i18n="guide">Guía</b></button>
+      <button class="nav" data-route="access"><span>⌘</span><b data-i18n="accessManager">Gestor de accesos</b></button>
+      <button class="nav" data-route="discover"><span>◉</span><b data-i18n="discover">Descubrir</b></button>
+      <button class="nav" data-route="agenda"><span>□</span><b data-i18n="agenda">Agenda</b></button>
+      <button class="nav" data-route="partners"><span>◇</span><b data-i18n="partners">Colaboradores</b></button>
+      <button class="nav" data-route="lab"><span>⌁</span><b>Urban Stay Lab</b></button>
+      <button class="nav" data-route="settings"><span>⚙</span><b data-i18n="settings">Configuración</b></button>
+    </nav>
+    <div class="system-card">
+      <div><i></i><b data-i18n="systemOnline">Sistema operativo</b></div>
+      <small data-i18n="allWorking">Todo funcionando correctamente</small>
+      <span>Platform v1.0 RC5.3 External Test.1 External Test</span>
+    </div>
+  </aside>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <button class="mobile-menu" id="mobileMenu" aria-label="Abrir menú">☰</button>
+      <div class="breadcrumb" id="breadcrumb">Urban Stay / Dashboard</div>
+      <div class="top-actions">
+        <label class="language-control">🌐
+          <select id="ownerLanguage" aria-label="Idioma del propietario">
+            <option value="es">ES</option><option value="en">EN</option><option value="fr">FR</option>
+            <option value="de">DE</option><option value="it">IT</option><option value="pt">PT</option>
+          </select>
+        </label>
+        <button class="icon-button" id="notificationButton" aria-label="Notificaciones">♧<em>3</em></button>
+        <button class="profile-button" id="profileButton"><span>IR</span><div><b>Iván Rodríguez</b><small data-i18n="owner">Propietario</small></div>⌄</button>
+      </div>
+    </header>
+    <main id="appContent" tabindex="-1"></main>
+  </div>
+
+  
+<dialog id="propertyWizard" class="property-wizard-dialog">
+  <div class="property-wizard-shell">
+    <button class="dialog-close" id="closePropertyWizard" aria-label="Cerrar">×</button>
+    <div class="wizard-sidebar">
+      <div class="brand-wordmark brand-wordmark--wizard"><span>URBAN STAY</span><b>PLATFORM</b></div>
+      <span class="overline">NUEVA PROPIEDAD</span>
+      <h2>Tu alojamiento listo paso a paso.</h2>
+      <p>Solo necesitamos la información esencial. Podrás editar cualquier detalle después.</p>
+      <div class="wizard-progress-list" id="wizardProgressList"></div>
+      <div class="wizard-tip"><b>Consejo</b><span>No hace falta tenerlo todo perfecto. Puedes guardar y completar más tarde.</span></div>
+    </div>
+    <div class="wizard-main">
+      <div class="wizard-topline">
+        <div><small id="wizardStepCounter">Paso 1 de 9</small><h2 id="wizardStepTitle">Datos básicos</h2></div>
+        <span class="draft-badge">Borrador automático</span>
+      </div>
+      <div id="wizardStepContent"></div>
+      <div class="wizard-footer">
+        <button class="btn secondary" id="wizardBack">← Atrás</button>
+        <div class="wizard-footer-actions">
+          <button class="btn secondary" id="wizardSaveDraft">Guardar borrador</button>
+          <button class="btn primary" id="wizardNext">Continuar →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="finalPreviewDialog" class="final-preview-dialog">
+  <div class="final-preview-shell">
+    <header class="final-preview-toolbar">
+      <div>
+        <span class="eyebrow">REVISIÓN FINAL ANTES DE PUBLICAR</span>
+        <h2 id="finalPreviewTitle">Vista final de tu guía</h2>
+      </div>
+      <div class="final-preview-tools">
+        <div class="device-switch">
+          <button type="button" id="finalPreviewMobile" class="active">📱 Móvil</button>
+          <button type="button" id="finalPreviewDesktop">💻 Escritorio</button>
+        </div>
+        <button type="button" class="final-preview-close" id="closeFinalPreview" aria-label="Cerrar">×</button>
+      </div>
+    </header>
+    <div class="final-preview-canvas">
+      <div id="finalPreviewFrame" class="final-preview-frame mobile"></div>
+    </div>
+    <footer class="final-preview-footer">
+      <div><b>¿Todo correcto?</b><span>Ciérrala para volver a la revisión o crea la propiedad cuando estés conforme.</span></div>
+      <button type="button" class="btn primary" id="finalPreviewDone">✓ Volver a revisión</button>
+    </footer>
+  </div>
+</dialog>
+<dialog id="externalDemoDialog" class="external-demo-dialog">
+  <div class="external-demo-shell">
+    <header><div><span class="eyebrow">EJEMPLO DE GUÍA</span><h2 id="externalDemoTitle">Barcelona 80</h2></div><button type="button" id="closeExternalDemo" class="final-preview-close">×</button></header>
+    <div class="external-demo-preview" id="externalDemoPreview"></div>
+    <footer><span>Este ejemplo sirve solo para mostrar el tipo de experiencia final que puede crear Urban Stay Platform.</span><button type="button" class="btn primary" id="startFromDemo">Empezar mi prueba</button></footer>
+  </div>
+</dialog>
+<dialog id="feedbackDialog" class="feedback-dialog"><form method="dialog" id="feedbackForm">
+<div class="feedback-head"><div><span class="section-label">PRUEBA DE USUARIO</span><h2>¿Qué tal ha sido crear tu propiedad?</h2></div><button value="cancel" class="final-preview-close">×</button></div>
+<label>¿Te ha resultado fácil?<select id="fbEase"><option value="5">Muy fácil</option><option value="4">Fácil</option><option value="3">Normal</option><option value="2">Difícil</option><option value="1">Muy difícil</option></select></label>
+<label>¿Dónde has tenido más dudas?<textarea id="fbDoubts" placeholder="Cuéntanos en qué paso te has parado o dudado"></textarea></label>
+<label>¿Qué has echado en falta?<textarea id="fbMissing" placeholder="Algo que añadirías o cambiarías"></textarea></label>
+<button type="button" class="btn primary" id="saveFeedback">Guardar opinión</button>
+<div class="feedback-result" id="feedbackResult" hidden>
+  <b>¡Gracias! Tu prueba está terminada.</b>
+  <p>Como esta versión aún no tiene servidor, copia este resumen y envíaselo a la persona que te invitó a probar Urban Stay.</p>
+  <textarea id="feedbackSummary" readonly></textarea>
+  <button type="button" class="btn secondary" id="copyFeedbackSummary">Copiar resumen de la prueba</button>
+</div></form></dialog>
+<dialog id="modal"><button class="dialog-close" id="closeModal" aria-label="Cerrar">×</button><div id="modalContent"></div></dialog>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="data/app-data.js"></script>
+  <script src="scripts/app.js"></script>
+</body>
+</html>

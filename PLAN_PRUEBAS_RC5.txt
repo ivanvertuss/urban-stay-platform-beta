@@ -1,0 +1,24 @@
+PRUEBA RC5 CON PROPIETARIOS
+
+Objetivo: comprobar si una persona puede subir una propiedad sin ayuda.
+
+Pide al probador que:
+1. Cree una cuenta.
+2. Cree una propiedad sin que le expliques dónde pulsar.
+3. Elija diseño.
+4. Suba logo y fotos.
+5. Complete equipamiento, WiFi, parking, restaurantes y agenda.
+6. Use la vista previa durante el proceso.
+7. Revise la página final.
+8. Cree la propiedad y la envíe a Revisión Urban Stay.
+9. Complete la encuesta.
+
+Observa, sin ayudar:
+- En qué paso duda.
+- Qué palabras no entiende.
+- Si encuentra Guardar borrador.
+- Si entiende Vista previa.
+- Si entiende qué significa Enviar a revisión.
+- Cuánto tarda aproximadamente.
+
+Después entra en “Revisión Urban Stay” desde el Dashboard para simular vuestro trabajo interno.

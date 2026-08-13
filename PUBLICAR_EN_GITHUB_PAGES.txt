@@ -1,0 +1,51 @@
+URBAN STAY PLATFORM RC5.1 EXTERNAL TEST
+PUBLICACIÓN EN GITHUB PAGES
+
+OBJETIVO
+Que los probadores reciban solo un enlace, por ejemplo:
+https://beta.urban-stay-platform.com
+
+PASO 1 — Crear un repositorio separado
+Recomendado: urban-stay-platform-beta
+No mezcles esta prueba con Barcelona 80 o Zamora 89.
+
+PASO 2 — Subir el CONTENIDO de esta carpeta a la raíz del repositorio
+El archivo index.html debe quedar directamente en la raíz.
+
+PASO 3 — Activar GitHub Pages
+En GitHub:
+Settings > Pages
+Source: Deploy from a branch
+Branch: main
+Folder: /(root)
+Guardar.
+
+GitHub mostrará una dirección temporal del tipo:
+https://TU-USUARIO.github.io/urban-stay-platform-beta/
+
+PASO 4 — Probar primero con esa URL
+Antes de tocar el dominio, comprueba registro, fotos, parking, preview y encuesta desde otro dispositivo.
+
+PASO 5 — Dominio personalizado
+Cuando la URL de GitHub Pages funcione:
+Settings > Pages > Custom domain
+Escribir:
+beta.urban-stay-platform.com
+
+En el proveedor donde gestionas urban-stay-platform.com crea un registro:
+Tipo: CNAME
+Nombre/Host: beta
+Destino: TU-USUARIO.github.io
+
+El destino exacto depende de tu nombre de usuario de GitHub.
+Cuando lleguemos a este paso, envía una captura de GitHub Pages y de la gestión DNS y lo hacemos juntos.
+
+ACCESO INTERNO A MODERACIÓN
+Los probadores NO ven el panel de revisión.
+Tú puedes abrirlo añadiendo ?admin=1 al final de la URL:
+https://beta.urban-stay-platform.com/?admin=1
+
+IMPORTANTE
+Esta prueba todavía no tiene backend.
+Cada probador guarda sus datos en su propio navegador.
+Al terminar, la plataforma genera un resumen que debe copiar y enviarte.

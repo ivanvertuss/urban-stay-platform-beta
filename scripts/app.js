@@ -223,7 +223,7 @@ function showOnboarding(stage='welcome'){
 }
 function hideOnboarding(){ $('#onboarding')?.classList.add('hidden'); document.body.classList.remove('onboarding-open'); }
 
-function register(){
+async function register(){
  const first=$('#regFirstName')?.value.trim()||'', last=$('#regLastName')?.value.trim()||'';
  const email=$('#regEmail')?.value.trim()||'', pass=$('#regPassword')?.value||'', terms=$('#regTerms')?.checked;
  const msg=$('#registerMessage');
@@ -233,16 +233,80 @@ function register(){
  if(!email || !$('#regEmail').checkValidity())return fail('Escribe un correo electrónico válido.');
  if(pass.length<6)return fail('La contraseña debe tener al menos 6 caracteres.');
  if(!terms)return fail('Acepta las condiciones de la prueba para continuar.');
- setOwner({firstName:first,lastName:last,email,password:pass,phone:$('#regPhone')?.value.trim()||'',country:$('#regCountry')?.value||'',company:$('#regCompany')?.value.trim()||''});
- localStorage.setItem(KEYS.session,'1'); msg.textContent='';
- $('#welcomeOwnerName').textContent=`Bienvenido, ${first}.`; syncOwner(); setStage('success');
+if(!DB)return fail('No se pudo conectar con el servidor. Inténtalo de nuevo.');
+
+const { data, error } = await DB.auth.signUp({
+  email,
+  password: pass,
+  options: {
+    data: {
+      full_name: `${first} ${last}`.trim()
+    }
+  }
+});
+
+if(error)return fail(error.message || 'No se pudo crear la cuenta.');
+
+setOwner({
+  firstName:first,
+  lastName:last,
+  email,
+  phone:$('#regPhone')?.value.trim()||'',
+  country:$('#regCountry')?.value||'',
+  company:$('#regCompany')?.value.trim()||''
+});
+
+if(data.session)localStorage.setItem(KEYS.session,'1');
+msg.textContent=''; $('#welcomeOwnerName').textContent=`Bienvenido, ${first}.`; syncOwner(); setStage('success');
 }
-function login(){
- const o=getOwner(), msg=$('#loginMessage');
- if(!o){msg.textContent='No hay una cuenta creada en este navegador.';msg.className='form-message error';return}
- if(($('#loginEmail')?.value.trim()||'').toLowerCase()!==o.email.toLowerCase() || ($('#loginPassword')?.value||'')!==o.password){msg.textContent='El correo o la contraseña no coinciden.';msg.className='form-message error';return}
- localStorage.setItem(KEYS.session,'1'); hideOnboarding(); syncOwner(); render();
+async function login(){
+  const msg=$('#loginMessage');
+  const email=$('#loginEmail')?.value.trim()||'';
+  const password=$('#loginPassword')?.value||'';
+
+  const fail=t=>{
+    msg.textContent=t;
+    msg.className='form-message error';
+  };
+
+  if(!DB)return fail('No se pudo conectar con el servidor. Inténtalo de nuevo.');
+  if(!email || !password)return fail('Escribe tu correo y contraseña.');
+
+  const { data, error } = await DB.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if(error)return fail('El correo o la contraseña no coinciden.');
+
+  const { data: profile } = await DB
+    .from('profiles')
+    .select('full_name, phone, company_name')
+    .eq('id', data.user.id)
+    .single();
+
+  const fullName=(profile?.full_name||'').trim();
+  const parts=fullName.split(/\s+/);
+  const firstName=parts.shift()||'';
+  const lastName=parts.join(' ');
+
+  setOwner({
+    firstName,
+    lastName,
+    email:data.user.email||email,
+    phone:profile?.phone||'',
+    company:profile?.company_name||''
+  });
+
+  localStorage.setItem(KEYS.session,'1');
+  msg.textContent='';
+  hideOnboarding();
+  syncOwner();
+  render();
 }
+  render();
+}
+
 function syncOwner(){
  const o=getOwner(); if(!o)return;
  const b=$('.profile-button b'), av=$('.profile-button>span'), role=$('.profile-button small');

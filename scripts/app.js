@@ -2,6 +2,13 @@
 (() => {
 'use strict';
 const DATA = window.URBAN_STAY_DATA || {properties:[]};
+ const SUPABASE_CONFIG = window.URBAN_STAY_SUPABASE || null;
+const DB = SUPABASE_CONFIG && window.supabase?.createClient
+  ? window.supabase.createClient(
+      SUPABASE_CONFIG.url,
+      SUPABASE_CONFIG.publishableKey
+    )
+  : null;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 

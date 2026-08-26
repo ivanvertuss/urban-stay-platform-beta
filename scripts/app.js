@@ -304,9 +304,6 @@ async function login(){
   syncOwner();
   render();
 }
-  render();
-}
-
 function syncOwner(){
  const o=getOwner(); if(!o)return;
  const b=$('.profile-button b'), av=$('.profile-button>span'), role=$('.profile-button small');

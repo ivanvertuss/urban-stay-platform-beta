@@ -68,11 +68,19 @@ function getUserProps(){try{return JSON.parse(localStorage.getItem(KEYS.props)||
 function saveUserProps(v){try{localStorage.setItem(KEYS.props,JSON.stringify(v));return true}catch(e){toast('No se pudieron guardar todos los datos. Reduce el número de fotos.');return false}}
 function getPropState(){try{return JSON.parse(localStorage.getItem(KEYS.propState)||'{}')}catch{return {}}}
 function savePropState(v){localStorage.setItem(KEYS.propState,JSON.stringify(v))}
+function demoProps(){
+  return (DATA.properties||[]).map(p=>({
+    ...p,
+    isDemo:true,
+    status:'demo'
+  }));
+}
+
 function allProps(){
- const st=getPropState();
- return [...(DATA.properties||[]),...getUserProps()]
-  .filter(p=>st[p.id]?.deleted!==true)
-  .map(p=>({...p,status:st[p.id]?.status||p.status||'active'}));
+  const st=getPropState();
+  return getUserProps()
+    .filter(p=>st[p.id]?.deleted!==true)
+    .map(p=>({...p,status:st[p.id]?.status||p.status||'draft'}));
 }
 function setPropertyStatus(id,status){
  const st=getPropState();st[id]={...(st[id]||{}),status,deleted:false};savePropState(st);render();toast(status==='inactive'?'Propiedad inactiva':'Propiedad activa');
@@ -326,31 +334,163 @@ function nav(route){
  render();
 }
 function propertyCard(p){
- const cover=p.wizardData?.photos?.[p.wizardData.coverIndex||0];
- const inactive=p.status==='inactive', ownerMade=!!p.wizardData;
- return `<article class="property-mini ${inactive?'property-inactive':''}" data-open-property="${p.id}">
- <div class="property-photo ${p.imageClass||''}" ${cover?`style="background-image:url('${cover}')"`:''}></div>
- <div class="property-data"><div class="property-head"><div><h2>${p.name}</h2><p>${p.city}</p></div><span class="status status--${p.status||'active'}">● ${workflowLabel(p.status||'active')}</span></div>
- <div class="property-stats"><div><small>Visitas hoy</small><b>${p.visits||0}</b></div><div><small>Última actualización</small><b>${p.updated||'Hoy'}</b></div><div><small>Valoración</small><b>${p.rating||'—'}</b></div><div><small>Plantilla</small><b>${templateName(p.wizardData?.template)}</b></div></div>
- <div class="property-actions" data-property-actions="${p.id}">
-   ${ownerMade&&['draft','changes_requested'].includes(p.status)?`<button type="button" class="property-review-btn" data-send-review="${p.id}">🛡 Enviar a revisión</button>`:''}
-   ${p.status==='approved'?`<button type="button" class="property-state-btn" data-status-property="${p.id}" data-status="active">✓ Activar</button>`:''}
-   ${['active','inactive'].includes(p.status)?`<button type="button" class="property-state-btn ${p.status==='active'?'active':''}" data-status-property="${p.id}" data-status="active">✓ Activa</button><button type="button" class="property-state-btn ${p.status==='inactive'?'active':''}" data-status-property="${p.id}" data-status="inactive">⏸ Inactiva</button>`:''}
-   <button type="button" class="property-delete-btn" data-delete-property="${p.id}">Eliminar propiedad</button>
- </div></div></article>`;
+  const cover=p.wizardData?.photos?.[p.wizardData.coverIndex||0];
+  const inactive=p.status==='inactive';
+  const ownerMade=!!p.wizardData;
+  const isDemo=!!p.isDemo;
+
+  const statusLabel=isDemo
+    ? '<span class="status status--demo">● Demo</span>'
+    : `<span class="status status--${p.status||'draft'}">● ${workflowLabel(p.status||'draft')}</span>`;
+
+  const actions=isDemo
+    ? `<div class="property-actions demo-actions">
+         <span class="demo-readonly">Ejemplo Urban Stay · Solo lectura</span>
+       </div>`
+    : `<div class="property-actions" data-property-actions="${p.id}">
+         ${ownerMade&&['draft','changes_requested'].includes(p.status)?`<button type="button" class="property-review-btn" data-send-review="${p.id}">🛡 Enviar a revisión</button>`:''}
+         ${p.status==='approved'?`<button type="button" class="property-state-btn" data-status-property="${p.id}" data-status="active">✓ Activar</button>`:''}
+         ${['active','inactive'].includes(p.status)?`<button type="button" class="property-state-btn ${p.status==='active'?'active':''}" data-status-property="${p.id}" data-status="active">✓ Activa</button><button type="button" class="property-state-btn ${p.status==='inactive'?'active':''}" data-status-property="${p.id}" data-status="inactive">⏸ Inactiva</button>`:''}
+         <button type="button" class="property-delete-btn" data-delete-property="${p.id}">Eliminar propiedad</button>
+       </div>`;
+
+  return `<article class="property-mini ${inactive?'property-inactive':''} ${isDemo?'property-demo':''}" data-open-property="${p.id}">
+    <div class="property-photo ${p.imageClass||''}" ${cover?`style="background-image:url('${cover}')"`:''}></div>
+    <div class="property-data">
+      <div class="property-head">
+        <div>
+          <h2>${p.name}</h2>
+          <p>${p.city}</p>
+        </div>
+        ${statusLabel}
+      </div>
+      <div class="property-stats">
+        <div><small>Visitas hoy</small><b>${p.visits||0}</b></div>
+        <div><small>Última actualización</small><b>${p.updated||'Hoy'}</b></div>
+        <div><small>Valoración</small><b>${p.rating||'—'}</b></div>
+        <div><small>Plantilla</small><b>${templateName(p.wizardData?.template)}</b></div>
+      </div>
+      ${actions}
+    </div>
+  </article>`;
 }
 function templateName(k){return ({'urban-classic':'Urban Classic','urban-premium':'Urban Premium','boutique':'Boutique','mediterranean':'Mediterranean'})[k]||'Urban Classic'}
 function dashboard(){
- const o=getOwner(); const name=o?.firstName||'';
+ const o=getOwner();
+ const name=o?.firstName||'';
  const greeting=name?`${tr('hello')}, ${name} 👋`:'Bienvenido a Urban Stay Platform 👋';
- return `<section class="page"><div class="command-hero"><div><span class="overline">URBAN STAY PLATFORM · EXTERNAL TEST</span><h1>${greeting}</h1><p>${tr('intro')}</p></div><div class="hero-actions">${state.admin?`<button class="btn secondary" id="openModeration">🛡 Revisión Urban Stay</button>`:'' }<button class="btn primary" id="newPropertyTop">＋ ${tr('add')}</button></div></div>
- <div class="overview-grid"><article class="overview-card"><span class="overview-icon">⌂</span><div><small>PROPIEDADES</small><strong>${allProps().length}</strong><em>Portfolio activo</em></div></article><article class="overview-card"><span class="overview-icon">✓</span><div><small>ESTADO</small><strong>OK</strong><em>Núcleo estable</em></div></article><article class="overview-card"><span class="overview-icon">👁</span><div><small>PREVIEW</small><strong>LIVE</strong><em>Durante el alta</em></div></article><article class="overview-card"><span class="overview-icon">🌐</span><div><small>IDIOMAS</small><strong>6</strong><em>Interfaz</em></div></article></div>
- <div class="dashboard-grid dashboard-grid--v07"><article class="card portfolio-card"><div class="card-head"><div><div class="section-label">MIS PROPIEDADES</div><h2>Portfolio</h2></div></div>${allProps().map(propertyCard).join('')}<button class="btn secondary full-button" id="newProperty">＋ ${tr('add')}</button></article>
- <article class="card"><div class="section-label">PRUEBA v1.0 RC5.6 External Test.1 External Test</div><h2>Flujo recomendado</h2><p>Registra una cuenta, crea una propiedad, cambia de plantilla y usa la vista previa mientras completas los datos.</p><div class="quality-list"><span>✓ Registro estable</span><span>✓ Plantillas seleccionables</span><span>✓ Fotos y logo</span><span>✓ Parking por opciones</span><span>✓ Agenda</span><span>✓ Preview en vivo</span></div></article></div></section>`;
+ const userProps=allProps();
+ const demos=demoProps();
+
+ return `<section class="page">
+   <div class="command-hero">
+     <div>
+       <span class="overline">URBAN STAY PLATFORM · EXTERNAL TEST</span>
+       <h1>${greeting}</h1>
+       <p>${tr('intro')}</p>
+     </div>
+     <div class="hero-actions">
+       ${state.admin?`<button class="btn secondary" id="openModeration">🛡 Revisión Urban Stay</button>`:''}
+       <button class="btn primary" id="newPropertyTop">＋ ${tr('add')}</button>
+     </div>
+   </div>
+
+   <div class="overview-grid">
+     <article class="overview-card">
+       <span class="overview-icon">⌂</span>
+       <div>
+         <small>PROPIEDADES</small>
+         <strong>${userProps.length}</strong>
+         <em>Tu portfolio</em>
+       </div>
+     </article>
+
+     <article class="overview-card">
+       <span class="overview-icon">✓</span>
+       <div><small>ESTADO</small><strong>OK</strong><em>Núcleo estable</em></div>
+     </article>
+
+     <article class="overview-card">
+       <span class="overview-icon">👁</span>
+       <div><small>PREVIEW</small><strong>LIVE</strong><em>Durante el alta</em></div>
+     </article>
+
+     <article class="overview-card">
+       <span class="overview-icon">🌐</span>
+       <div><small>IDIOMAS</small><strong>6</strong><em>Interfaz</em></div>
+     </article>
+   </div>
+
+   <div class="dashboard-grid dashboard-grid--v07">
+     <article class="card portfolio-card">
+       <div class="card-head">
+         <div>
+           <div class="section-label">MIS PROPIEDADES</div>
+           <h2>Portfolio</h2>
+         </div>
+       </div>
+
+       ${userProps.length
+         ? userProps.map(propertyCard).join('')
+         : `<p class="empty-state">Todavía no has creado ninguna propiedad.</p>`}
+
+       <button class="btn secondary full-button" id="newProperty">＋ ${tr('add')}</button>
+     </article>
+
+     <article class="card portfolio-card">
+       <div class="card-head">
+         <div>
+           <div class="section-label">EJEMPLOS URBAN STAY</div>
+           <h2>Living Labs</h2>
+           <p>Ejemplos reales para explorar. No se pueden modificar.</p>
+         </div>
+       </div>
+
+       ${demos.map(propertyCard).join('')}
+     </article>
+   </div>
+ </section>`;
 }
+
 function properties(){
- return `<section class="page"><div class="page-title"><div><h1>${tr('properties')}</h1><p>Todos tus alojamientos desde un único lugar.</p></div><button class="btn primary" id="newPropertyTop">＋ ${tr('add')}</button></div><div class="property-list card">${allProps().map(propertyCard).join('')}</div></section>`;
-}
+ const userProps=allProps();
+ const demos=demoProps();
+
+ return `<section class="page">
+   <div class="page-title">
+     <div>
+       <h1>${tr('properties')}</h1>
+       <p>Gestiona únicamente los alojamientos asociados a tu cuenta.</p>
+     </div>
+     <button class="btn primary" id="newPropertyTop">＋ ${tr('add')}</button>
+   </div>
+
+   <div class="property-list card">
+     <div class="card-head">
+       <div>
+         <div class="section-label">MIS PROPIEDADES</div>
+         <h2>Tu portfolio</h2>
+       </div>
+     </div>
+
+     ${userProps.length
+       ? userProps.map(propertyCard).join('')
+       : `<p class="empty-state">Todavía no has creado ninguna propiedad.</p>`}
+   </div>
+
+   <div class="property-list card">
+     <div class="card-head">
+       <div>
+         <div class="section-label">EJEMPLOS URBAN STAY</div>
+         <h2>Barcelona 80 · Zamora 89</h2>
+         <p>Ejemplos de referencia disponibles únicamente en modo lectura.</p>
+       </div>
+     </div>
+
+     ${demos.map(propertyCard).join('')}
+   </div>
+ </section>`;
+} 
 function generic(route){
  const labels={guide:'Constructor de guía',access:'Gestor de accesos',discover:'Descubrir',agenda:'Agenda',partners:'Colaboradores',lab:'Urban Stay Lab',settings:'Configuración'};
  return `<section class="page"><div class="page-title"><div><h1>${labels[route]||route}</h1><p>Módulo preparado en la nueva arquitectura v1.0 RC.</p></div></div><article class="card"><div class="section-label">ESTADO DEL MÓDULO</div><p>Esta versión se centra en estabilizar cuenta, alta de propiedad y vista previa. El módulo se conserva para las siguientes iteraciones.</p></article></section>`;

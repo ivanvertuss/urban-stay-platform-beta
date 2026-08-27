@@ -707,7 +707,12 @@ function bindWizard(){
  bindPhotoActionButtons();
  $$('[data-device]').forEach(b=>b.onclick=()=>{state.previewDevice=b.dataset.device;$$('[data-device]').forEach(x=>x.classList.toggle('active',x.dataset.device===state.previewDevice));const phone=$('#guestPhone');if(phone)phone.classList.toggle('desktop',state.previewDevice==='desktop')});
  $('#openPreviewFromReview')?.addEventListener('click',openFinalPreview);
- $('#wizardPreviewToggle')?.addEventListener('click',()=>{state.previewOpen=!state.previewOpen;const panel=$('#wizardLivePanel');if(panel)panel.classList.toggle('open',state.previewOpen)});
+const previewToggle=$('#wizardPreviewToggle');
+if(previewToggle)previewToggle.onclick=()=>{
+  state.previewOpen=!state.previewOpen;
+  const panel=$('#wizardLivePanel');
+  if(panel)panel.classList.toggle('open',state.previewOpen);
+};
  $('#closeLivePreview')?.addEventListener('click',()=>{state.previewOpen=false;const panel=$('#wizardLivePanel');if(panel)panel.classList.remove('open')});
 }
 function compressImage(file,maxSide=1000,quality=.65){

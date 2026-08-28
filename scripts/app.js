@@ -263,9 +263,17 @@ setOwner({
   country:$('#regCountry')?.value||'',
   company:$('#regCompany')?.value.trim()||''
 });
-
-if(data.session)localStorage.setItem(KEYS.session,'1');
-msg.textContent=''; $('#welcomeOwnerName').textContent=`Bienvenido, ${first}.`; syncOwner(); setStage('success');
+if(data.session){
+  localStorage.setItem(KEYS.session,'1');
+  msg.textContent='';
+  $('#welcomeOwnerName').textContent=`Bienvenido, ${first}.`;
+  syncOwner();
+  setStage('success');
+}else{
+  localStorage.removeItem(KEYS.session);
+  msg.textContent='Cuenta creada. Revisa tu correo, confirma tu dirección y después inicia sesión.';
+  msg.className='form-message success';
+  setTimeout(()=>setStage('login'),1200);
 }
 async function login(){
   const msg=$('#loginMessage');

@@ -740,11 +740,95 @@ function compressImage(file,maxSide=1000,quality=.65){
   r.readAsDataURL(file);
  });
 }
-function createProperty(){
- if(!draft.name){toast('Añade un nombre al alojamiento.');state.wizardStep=0;renderWizard();return}
- const slug=(draft.slug||draft.name).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
- const props=getUserProps(); props.push({id:slug||`property-${Date.now()}`,name:draft.name,city:`${draft.city}, ${draft.country}`,visits:0,updated:new Date().toLocaleDateString('es-ES'),rating:'—',status:'draft',wizardData:JSON.parse(JSON.stringify(normalizeDraft(draft)))});
- saveUserProps(props); localStorage.removeItem(KEYS.draft); draft=blankDraft(); closeWizard(); state.route='properties';render();toast('Propiedad creada como borrador');track('property_created',{id:slug});setTimeout(()=>{if(confirm('Propiedad guardada. ¿Quieres enviar ahora tu prueba a Revisión Urban Stay?'))sendForReview(slug)},250);
+async function createProperty(){
+  if(!draft.name){
+    toast('Añade un nombre al alojamiento.');
+    state.wizardStep=0;
+    renderWizard();
+    return;
+  }
+
+  const slug=(draft.slug||draft.name)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,'-')
+    .replace(/(^-|-$)/g,'');
+
+  if(!DB){
+    toast('No hay conexión con Supabase.');
+    return;
+  }
+
+  const {data:{user},error:userError}=await DB.auth.getUser();
+
+  if(userError || !user){
+    toast('Tu sesión ha caducado. Vuelve a iniciar sesión.');
+    return;
+  }
+
+  const normalized=normalizeDraft(draft);
+
+  const {data:property,error:propertyError}=await DB
+    .from('properties')
+    .insert({
+      owner_id:user.id,
+      name:draft.name,
+      slug:slug||null,
+      city:draft.city||'',
+      country:draft.country||null,
+      address:draft.address||null,
+      status:'draft'
+    })
+    .select()
+    .single();
+
+  if(propertyError){
+    console.error(propertyError);
+    toast('No se pudo guardar la propiedad en el servidor.');
+    return;
+  }
+
+  const {error:contentError}=await DB
+    .from('property_content')
+    .insert({
+      property_id:property.id,
+      content:normalized
+    });
+
+  if(contentError){
+    console.error(contentError);
+    toast('La propiedad se creó, pero no se pudo guardar su contenido.');
+    return;
+  }
+
+  const props=getUserProps();
+  props.push({
+    id:property.id,
+    name:draft.name,
+    city:`${draft.city}, ${draft.country}`,
+    visits:0,
+    updated:new Date().toLocaleDateString('es-ES'),
+    rating:'—',
+    status:'draft',
+    wizardData:JSON.parse(JSON.stringify(normalized))
+  });
+
+  saveUserProps(props);
+  localStorage.removeItem(KEYS.draft);
+  draft=blankDraft();
+  closeWizard();
+  state.route='properties';
+  render();
+
+  toast('Propiedad guardada en Urban Stay');
+  track('property_created',{id:property.id});
+
+  setTimeout(()=>{
+    if(confirm('Propiedad guardada. ¿Quieres enviar ahora tu prueba a Revisión Urban Stay?')){
+      sendForReview(property.id);
+    }
+  },250);
 }
 
 function bindPage(){

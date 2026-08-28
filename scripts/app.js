@@ -275,6 +275,7 @@ if(data.session){
   msg.className='form-message success';
   setTimeout(()=>setStage('login'),1200);
 }
+} 
 async function login(){
   const msg=$('#loginMessage');
   const email=$('#loginEmail')?.value.trim()||'';

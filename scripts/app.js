@@ -907,9 +907,79 @@ function bindPage(){
  $$('[data-status-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();setPropertyStatus(b.dataset.statusProperty,b.dataset.status)});
  $$('[data-delete-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();deleteProperty(b.dataset.deleteProperty)});
  $$('[data-property-actions]').forEach(x=>x.onclick=e=>e.stopPropagation());
- $$('[data-open-property]').forEach(x=>x.onclick=()=>{const p=allProps().find(y=>y.id===x.dataset.openProperty);if(p?.wizardData){draft=normalizeDraft(JSON.parse(JSON.stringify(p.wizardData)));saveDraft();openWizard()}else toast('Living Lab de demostración')});
-}
+$$('[data-open-property]').forEach(x=>x.onclick=()=>{
+  const p=allProps().find(y=>y.id===x.dataset.openProperty);
 
+  if(p?.wizardData){
+    state.selectedProperty=p.id;
+    draft=normalizeDraft(JSON.parse(JSON.stringify(p.wizardData)));
+    saveDraft();
+    openWizard();
+  }else{
+    toast('Living Lab de demostración');
+  }
+});
+}
+async function saveCurrentDraft(){
+  saveDraft();
+
+  if(!state.selectedProperty){
+    toast('Borrador guardado');
+    return;
+  }
+
+  if(!DB){
+    toast('No hay conexión con Supabase.');
+    return;
+  }
+
+  const normalized=normalizeDraft(draft);
+
+  const {error:propertyError}=await DB
+    .from('properties')
+    .update({
+      name:draft.name,
+      city:draft.city||'',
+      country:draft.country||null,
+      address:draft.address||null
+    })
+    .eq('id',state.selectedProperty);
+
+  if(propertyError){
+    console.error(propertyError);
+    toast('No se pudo actualizar la propiedad.');
+    return;
+  }
+
+  const {error:contentError}=await DB
+    .from('property_content')
+    .update({
+      content:normalized
+    })
+    .eq('property_id',state.selectedProperty);
+
+  if(contentError){
+    console.error(contentError);
+    toast('No se pudo actualizar el contenido.');
+    return;
+  }
+
+  const props=getUserProps();
+  const index=props.findIndex(p=>p.id===state.selectedProperty);
+
+  if(index>=0){
+    props[index]={
+      ...props[index],
+      name:draft.name,
+      city:[draft.city,draft.country].filter(Boolean).join(', '),
+      updated:new Date().toLocaleDateString('es-ES'),
+      wizardData:JSON.parse(JSON.stringify(normalized))
+    };
+    saveUserProps(props);
+  }
+
+  toast('Cambios guardados en Urban Stay');
+}
 function boot(){
  cleanupLegacyTestData();
  $('#startRegistration')?.addEventListener('click',()=>setStage('register'));
@@ -943,7 +1013,7 @@ function boot(){
    catch{const ta=$('#feedbackSummary');ta?.select();document.execCommand('copy');toast('Resumen copiado.')}
  });
  $('#wizardBack')?.addEventListener('click',()=>{if(state.wizardStep>0){state.wizardStep--;renderWizard()}});
- $('#wizardSaveDraft')?.addEventListener('click',()=>{saveDraft();toast('Borrador guardado')});
+$('#wizardSaveDraft')?.addEventListener('click',saveCurrentDraft);
  $('#wizardNext')?.addEventListener('click',()=>{if(state.wizardStep<STEPS.length-1){state.wizardStep++;renderWizard()}else createProperty()});
  $('#ownerLanguage')?.addEventListener('change',e=>{state.lang=e.target.value;localStorage.setItem(KEYS.lang,state.lang);render()});
  $('#mobileMenu')?.addEventListener('click',()=>$('#sidebar')?.classList.toggle('open'));

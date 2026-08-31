@@ -276,6 +276,60 @@ if(data.session){
   setTimeout(()=>setStage('login'),1200);
 }
 } 
+ async function loadServerProperties(userId){
+  if(!DB || !userId)return;
+
+  const {data:properties,error:propertiesError}=await DB
+    .from('properties')
+    .select('*')
+    .eq('owner_id',userId)
+    .order('created_at',{ascending:false});
+
+  if(propertiesError){
+    console.error('Error loading properties',propertiesError);
+    toast('No se pudieron cargar tus propiedades.');
+    return;
+  }
+
+  if(!properties?.length){
+    saveUserProps([]);
+    return;
+  }
+
+  const ids=properties.map(p=>p.id);
+
+  const {data:contents,error:contentsError}=await DB
+    .from('property_content')
+    .select('property_id,content')
+    .in('property_id',ids);
+
+  if(contentsError){
+    console.error('Error loading property content',contentsError);
+  }
+
+  const contentMap=new Map(
+    (contents||[]).map(row=>[row.property_id,row.content])
+  );
+
+  const localProps=properties.map(p=>{
+    const content=normalizeDraft(contentMap.get(p.id)||{});
+
+    return {
+      id:p.id,
+      name:p.name,
+      city:[p.city,p.country].filter(Boolean).join(', '),
+      visits:0,
+      updated:p.updated_at
+        ? new Date(p.updated_at).toLocaleDateString('es-ES')
+        : new Date().toLocaleDateString('es-ES'),
+      rating:'—',
+      status:p.status||'draft',
+      wizardData:content
+    };
+  });
+
+  saveUserProps(localProps);
+}
 async function login(){
   const msg=$('#loginMessage');
   const email=$('#loginEmail')?.value.trim()||'';
@@ -317,6 +371,9 @@ async function login(){
 
   localStorage.setItem(KEYS.session,'1');
   msg.textContent='';
+
+ await loadServerProperties(data.user.id);
+ 
   hideOnboarding();
   syncOwner();
   render();

@@ -978,7 +978,20 @@ async function saveCurrentDraft(){
     saveUserProps(props);
   }
 
-  toast('Cambios guardados en Urban Stay');
+const saveBtn=$('#wizardSaveDraft');
+
+if(saveBtn){
+  const oldText=saveBtn.textContent;
+  saveBtn.textContent='✓ Guardado';
+  saveBtn.disabled=true;
+
+  setTimeout(()=>{
+    saveBtn.textContent=oldText;
+    saveBtn.disabled=false;
+  },1800);
+}
+
+toast('✓ Borrador guardado correctamente');
 }
 function boot(){
  cleanupLegacyTestData();

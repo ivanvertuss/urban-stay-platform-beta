@@ -576,6 +576,13 @@ function openWizard(){
  renderWizard();
  const dlg=$('#propertyWizard'); if(dlg && !dlg.open)dlg.showModal();
 }
+ function openNewPropertyWizard(){
+  state.selectedProperty=null;
+  localStorage.removeItem(KEYS.draft);
+  draft=blankDraft();
+  saveDraft();
+  openWizard();
+}
 function closeWizard(){const d=$('#propertyWizard');if(d?.open)d.close()}
 function wizardProgress(){
  return STEPS.map((s,i)=>`<button type="button" class="wizard-progress-item ${i===state.wizardStep?'active':''} ${i<state.wizardStep?'done':''}" data-jump="${i}"><span>${i<state.wizardStep?'✓':i+1}</span><b>${s[1]}</b></button>`).join('');
@@ -899,7 +906,8 @@ async function createProperty(){
 
 function bindPage(){
  $$('[data-route]').forEach(b=>b.onclick=()=>nav(b.dataset.route));
- $('#newProperty')?.addEventListener('click',openWizard);$('#newPropertyTop')?.addEventListener('click',openWizard);
+$('#newProperty')?.addEventListener('click',openNewPropertyWizard);
+$('#newPropertyTop')?.addEventListener('click',openNewPropertyWizard);
  $('#openModeration')?.addEventListener('click',()=>nav('moderation'));
  $$('[data-send-review]').forEach(b=>b.onclick=e=>{e.stopPropagation();sendForReview(b.dataset.sendReview)});
  $$('[data-approve]').forEach(b=>b.onclick=e=>{e.stopPropagation();moderationAction(b.dataset.approve,'approved')});

@@ -931,10 +931,23 @@ $$('[data-open-property]').forEach(x=>x.onclick=()=>{
 async function saveCurrentDraft(){
   saveDraft();
 
-  if(!state.selectedProperty){
-    toast('Borrador guardado');
-    return;
+ if(!state.selectedProperty){
+  const saveBtn=$('#wizardSaveDraft');
+
+  if(saveBtn){
+    const oldText=saveBtn.textContent;
+    saveBtn.textContent='✓ Guardado';
+    saveBtn.disabled=true;
+
+    setTimeout(()=>{
+      saveBtn.textContent=oldText;
+      saveBtn.disabled=false;
+    },1800);
   }
+
+  toast('✓ Borrador guardado correctamente');
+  return;
+}
 
   if(!DB){
     toast('No hay conexión con Supabase.');

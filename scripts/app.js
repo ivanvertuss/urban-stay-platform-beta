@@ -821,25 +821,43 @@ async function createProperty(){
     return;
   }
 
-  const slug=(draft.slug||draft.name)
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g,'')
-    .replace(/[^a-z0-9]+/g,'-')
-    .replace(/(^-|-$)/g,'');
+const baseSlug=(draft.slug||draft.name)
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g,'')
+  .replace(/[^a-z0-9]+/g,'-')
+  .replace(/(^-|-$)/g,'');
+if(!DB){
+  toast('No hay conexión con Supabase.');
+  return;
+}
+let slug=baseSlug;
+const {data:{user},error:userError}=await DB.auth.getUser();
 
-  if(!DB){
-    toast('No hay conexión con Supabase.');
-    return;
+if(userError || !user){
+  toast('Tu sesión ha caducado. Vuelve a iniciar sesión.');
+  return;
+}
+const {data:existingSlugs,error:slugError}=await DB
+  .from('properties')
+  .select('slug')
+  .like('slug',`${baseSlug}%`);
+
+if(slugError){
+  console.error(slugError);
+  toast('No se pudo comprobar la URL de la propiedad.');
+  return;
+}
+
+const usedSlugs=new Set((existingSlugs||[]).map(p=>p.slug).filter(Boolean));
+
+if(usedSlugs.has(slug)){
+  let n=2;
+  while(usedSlugs.has(`${baseSlug}-${n}`)){
+    n++;
   }
-
-  const {data:{user},error:userError}=await DB.auth.getUser();
-
-  if(userError || !user){
-    toast('Tu sesión ha caducado. Vuelve a iniciar sesión.');
-    return;
-  }
-
+  slug=`${baseSlug}-${n}`;
+}
   const normalized=normalizeDraft(draft);
 
   const {data:property,error:propertyError}=await DB

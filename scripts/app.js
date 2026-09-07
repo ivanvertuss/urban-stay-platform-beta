@@ -386,6 +386,66 @@ function syncOwner(){
  if(role)role.textContent=tr('owner');
 }
 
+ async function logout(){
+  if(!DB) return;
+
+  const {error}=await DB.auth.signOut();
+
+  if(error){
+    console.error(error);
+    toast('No se pudo cerrar la sesión.');
+    return;
+  }
+
+  localStorage.removeItem(KEYS.session);
+  localStorage.removeItem(KEYS.owner);
+  window.location.reload();
+}
+
+function initProfileMenu(){
+  const btn=$('#profileButton');
+  if(!btn || $('#profileMenu'))return;
+
+  const menu=document.createElement('div');
+  menu.id='profileMenu';
+  menu.style.cssText=`
+    position:fixed;
+    top:78px;
+    right:24px;
+    width:220px;
+    background:#fff;
+    border:1px solid #e2e8f0;
+    border-radius:14px;
+    padding:8px;
+    box-shadow:0 16px 40px rgba(15,23,42,.16);
+    z-index:9999;
+    display:none;
+  `;
+
+  menu.innerHTML=`
+    <button type="button" id="profileLogout"
+      style="width:100%;border:0;background:#fff;padding:12px 14px;
+      border-radius:10px;text-align:left;font-weight:800;cursor:pointer;">
+      Cerrar sesión
+    </button>
+  `;
+
+  document.body.appendChild(menu);
+
+  btn.addEventListener('click',(e)=>{
+    e.stopPropagation();
+    menu.style.display=menu.style.display==='block'?'none':'block';
+  });
+
+  $('#profileLogout')?.addEventListener('click',logout);
+
+  document.addEventListener('click',()=>{
+    menu.style.display='none';
+  });
+
+  menu.addEventListener('click',e=>e.stopPropagation());
+}
+
 function applyStatic(){
  const map={dashboard:'dashboard',properties:'properties',guide:'guide',accessManager:'access',discover:'discover',agenda:'agenda',partners:'partners',settings:'settings',systemOnline:'system',allWorking:'working',owner:'owner'};
  $$('[data-i18n]').forEach(el=>{const k=map[el.dataset.i18n]||el.dataset.i18n;el.textContent=tr(k)});
@@ -1034,6 +1094,7 @@ toast('✓ Borrador guardado correctamente');
 }
 function boot(){
  cleanupLegacyTestData();
+ initProfileMenu();
  $('#startRegistration')?.addEventListener('click',()=>setStage('register'));
  $$('[data-demo-preview]').forEach(b=>b.addEventListener('click',()=>openExternalDemo(b.dataset.demoPreview)));
  $('#closeExternalDemo')?.addEventListener('click',closeExternalDemo);
@@ -1072,7 +1133,9 @@ $('#wizardSaveDraft')?.addEventListener('click',saveCurrentDraft);
  $('#feedbackDialog')?.addEventListener('cancel',e=>{e.preventDefault();closeFeedbackDialog()});
  const logged=localStorage.getItem(KEYS.session)==='1'&&getOwner();
  if(logged)hideOnboarding(); else showOnboarding(getOwner()?'login':'welcome');
- applyStatic();render();
+applyStatic();
+initProfileMenu();
+render();
 }
 
 document.addEventListener('DOMContentLoaded',boot);

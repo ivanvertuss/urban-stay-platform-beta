@@ -12,9 +12,10 @@
   <main class="admin-shell">
     <header class="admin-header">
       <div class="brand-wordmark"><span>URBAN STAY</span><b>PLATFORM</b></div>
-      <div><span class="section-label">CONTROL URBAN STAY</span><h1>Administración de cuentas</h1><p>Aprueba o rechaza el acceso de nuevos propietarios.</p></div>
+      <div><span class="section-label">CONTROL URBAN STAY</span><h1>Administración</h1><p>Gestiona el acceso de propietarios y la aprobación independiente de cada alojamiento.</p></div>
       <button class="btn secondary" id="adminLogout" hidden>Cerrar sesión</button>
     </header>
+
     <section class="admin-login card" id="adminLogin">
       <span class="section-label">ACCESO RESTRINGIDO</span>
       <h2>Acceso de administrador</h2>
@@ -24,12 +25,29 @@
       <div class="form-message" id="adminMessage"></div>
       <button class="btn primary" id="adminLoginButton">Entrar</button>
     </section>
+
     <section id="adminConsole" hidden>
+      <div class="admin-switch card" role="tablist" aria-label="Sección de administración">
+        <button type="button" class="admin-switch-btn" id="showAccounts" data-admin-view="accounts">Propietarios</button>
+        <button type="button" class="admin-switch-btn active" id="showProperties" data-admin-view="properties">Propiedades</button>
+      </div>
+
       <div class="admin-stats" id="adminStats"></div>
-      <div class="admin-toolbar card"><div><span class="section-label">SOLICITUDES</span><h2>Usuarios registrados</h2></div><select id="accountFilter"><option value="pending">Pendientes</option><option value="approved">Aprobados</option><option value="rejected">Rechazados</option><option value="all">Todos</option></select></div>
+
+      <div class="admin-toolbar card">
+        <div><span class="section-label" id="adminSectionLabel">REVISIÓN DE PROPIEDADES</span><h2 id="adminListTitle">Alojamientos registrados</h2></div>
+        <select id="accountFilter" aria-label="Filtrar estado">
+          <option value="pending">Pendientes</option>
+          <option value="approved">Aprobados</option>
+          <option value="rejected">Rechazados</option>
+          <option value="all">Todos</option>
+        </select>
+      </div>
+
       <div id="accountList" class="admin-list"></div>
     </section>
   </main>
+
   <div class="toast" id="toast" role="status"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="scripts/supabase-config.js"></script>

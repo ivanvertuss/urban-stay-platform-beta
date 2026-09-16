@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-function isManagedRoute(route){return route==='access'||route==='guide'}
+function isManagedRoute(route){return route==='access'||route==='guide'||route==='discover'}
 function activeRoute(){return document.querySelector('.nav.active')?.dataset?.route||''}
 function guard(){
  const host=document.querySelector('#appContent');
@@ -14,6 +14,7 @@ function releaseWhenReady(){
  const route=activeRoute();
  if(route==='access'&&document.querySelector('#accessManagerRoot'))host.style.visibility='visible';
  if(route==='guide'&&document.querySelector('.usp-guide'))host.style.visibility='visible';
+ if(route==='discover'&&document.querySelector('#discoverManagerRoot'))host.style.visibility='visible';
 }
 document.addEventListener('DOMContentLoaded',()=>{
  const host=document.querySelector('#appContent');if(!host)return;

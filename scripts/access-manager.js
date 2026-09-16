@@ -12,6 +12,8 @@ let properties=[], selected=null, data={};
 const defaults=()=>({accessType:'Llaves',accessCode:'',accessInstructions:'',wifiName:'',wifiPassword:'',parking:'',arrivalNotes:''});
 function wizardAccessType(type){return ({'Código':'Caja de llaves','Cerradura inteligente':'Smart Lock','Recepción':'Recepción','Llaves':'Llaves'})[type]||type||'Llaves'}
 function managerAccessType(type){return ({'Caja de llaves':'Código','Smart Lock':'Cerradura inteligente','Recepción':'Recepción','Llaves':'Llaves'})[type]||type||'Llaves'}
+function hideHost(){const host=document.querySelector('#appContent');if(host){host.style.visibility='hidden';host.style.minHeight='70vh'}}
+function showHost(){const host=document.querySelector('#appContent');if(host){host.style.visibility='visible';host.style.minHeight=''}}
 async function getProperties(){
  if(!DB)return [];
  const {data:auth}=await DB.auth.getUser(); const uid=auth?.user?.id;if(!uid)return [];
@@ -79,9 +81,12 @@ async function save(){
 }
 async function renderAccess(){
  const host=document.querySelector('#appContent');if(!host)return;
- try{properties=await getProperties();const stored=localStorage.getItem(SELECTED_KEY);selected=properties.some(p=>p.id===stored)?stored:properties[0]?.id||null;if(selected)localStorage.setItem(SELECTED_KEY,selected);await loadAccess(selected);host.innerHTML=renderMarkup();updatePreview();bind();}catch(err){console.error(err);toast('No se pudo cargar Accesos')}
+ hideHost();
+ try{properties=await getProperties();const stored=localStorage.getItem(SELECTED_KEY);selected=properties.some(p=>p.id===stored)?stored:properties[0]?.id||null;if(selected)localStorage.setItem(SELECTED_KEY,selected);await loadAccess(selected);host.innerHTML=renderMarkup();updatePreview();bind();}
+ catch(err){console.error(err);toast('No se pudo cargar Accesos')}
+ finally{showHost()}
 }
-function bind(){const root=document.querySelector('#'+ROOT_ID);if(!root)return;root.addEventListener('input',e=>{const k=e.target.dataset.accessField;if(!k)return;data[k]=e.target.value;updatePreview()});root.addEventListener('change',async e=>{if(e.target.id==='accessProperty'){selected=e.target.value;localStorage.setItem(SELECTED_KEY,selected);await loadAccess(selected);document.querySelector('#appContent').innerHTML=renderMarkup();updatePreview();bind();return}const k=e.target.dataset.accessField;if(k){data[k]=e.target.value;if(k==='accessType'){document.querySelector('.access-code-wrap').style.display=(data.accessType==='Código'||data.accessType==='Cerradura inteligente')?'block':'none'}updatePreview()}});document.querySelector('#saveAccess')?.addEventListener('click',save)}
-document.addEventListener('click',e=>{if(e.target.closest('[data-route="access"]'))setTimeout(renderAccess,70)},true);
-if(document.readyState!=='loading'&&document.querySelector('[data-route="access"].active'))setTimeout(renderAccess,70);
+function bind(){const root=document.querySelector('#'+ROOT_ID);if(!root)return;root.addEventListener('input',e=>{const k=e.target.dataset.accessField;if(!k)return;data[k]=e.target.value;updatePreview()});root.addEventListener('change',async e=>{if(e.target.id==='accessProperty'){hideHost();selected=e.target.value;localStorage.setItem(SELECTED_KEY,selected);await loadAccess(selected);document.querySelector('#appContent').innerHTML=renderMarkup();updatePreview();bind();showHost();return}const k=e.target.dataset.accessField;if(k){data[k]=e.target.value;if(k==='accessType'){document.querySelector('.access-code-wrap').style.display=(data.accessType==='Código'||data.accessType==='Cerradura inteligente')?'block':'none'}updatePreview()}});document.querySelector('#saveAccess')?.addEventListener('click',save)}
+document.addEventListener('click',e=>{if(e.target.closest('[data-route="access"]')){hideHost();setTimeout(renderAccess,70)}},true);
+if(document.readyState!=='loading'&&document.querySelector('[data-route="access"].active')){hideHost();setTimeout(renderAccess,70)}
 })();

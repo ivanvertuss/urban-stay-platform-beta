@@ -5,10 +5,13 @@ const DB = window.URBAN_STAY_SUPABASE && window.supabase?.createClient
   : null;
 const ROOT_ID='accessManagerRoot';
 const SELECTED_KEY='usp-v1-selected-property';
+const PROPS_KEY='usp-v1-properties';
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const toast=msg=>{const e=document.querySelector('#toast');if(!e)return;e.textContent=msg;e.classList.add('show');clearTimeout(window.__accessToast);window.__accessToast=setTimeout(()=>e.classList.remove('show'),2200)};
 let properties=[], selected=null, data={};
 const defaults=()=>({accessType:'Llaves',accessCode:'',accessInstructions:'',wifiName:'',wifiPassword:'',parking:'',arrivalNotes:''});
+function wizardAccessType(type){return ({'Código':'Caja de llaves','Cerradura inteligente':'Smart Lock','Recepción':'Recepción','Llaves':'Llaves'})[type]||type||'Llaves'}
+function managerAccessType(type){return ({'Caja de llaves':'Código','Smart Lock':'Cerradura inteligente','Recepción':'Recepción','Llaves':'Llaves'})[type]||type||'Llaves'}
 async function getProperties(){
  if(!DB)return [];
  const {data:auth}=await DB.auth.getUser(); const uid=auth?.user?.id;if(!uid)return [];
@@ -19,7 +22,19 @@ async function loadAccess(id){
  data=defaults(); if(!DB||!id)return;
  const {data:row,error}=await DB.from('property_content').select('content,updated_at').eq('property_id',id).maybeSingle();
  if(error)throw error;
- const a=row?.content?.access||{};data={...data,...a};data.updatedAt=row?.updated_at||null;
+ const content=row?.content||{};
+ const a=content.access||{};
+ data={
+  ...data,
+  wifiName:a.wifiName ?? content.wifiName ?? '',
+  wifiPassword:a.wifiPassword ?? content.wifiPassword ?? '',
+  accessType:managerAccessType(a.accessType ?? content.accessType ?? 'Llaves'),
+  accessCode:a.accessCode ?? '',
+  accessInstructions:a.accessInstructions ?? content.accessNotes ?? '',
+  parking:a.parking ?? '',
+  arrivalNotes:a.arrivalNotes ?? ''
+ };
+ data.updatedAt=row?.updated_at||null;
 }
 function field(label,key,placeholder,type='input'){
  const val=esc(data[key]);
@@ -36,12 +51,31 @@ function renderMarkup(){
  <div class="access-card" style="margin-top:22px"><h2>Vista para el huésped</h2><div class="access-preview" id="accessPreview"></div><div class="access-actions"><span class="access-updated" id="accessUpdated">${data.updatedAt?'Última actualización: '+new Date(data.updatedAt).toLocaleString('es-ES'):''}</span><button class="access-save" id="saveAccess">Guardar accesos</button></div></div></section>`;
 }
 function updatePreview(){const e=document.querySelector('#accessPreview');if(!e)return;e.innerHTML=`<h3>🔑 ${esc(data.accessType||'Acceso')}</h3><p>${esc(data.accessInstructions||'Añade las instrucciones de entrada para tus huéspedes.')}</p>${data.accessCode?`<h3>Código de acceso</h3><p>${esc(data.accessCode)}</p>`:''}<h3>📶 Wi-Fi</h3><p>${data.wifiName?esc(data.wifiName)+(data.wifiPassword?' · '+esc(data.wifiPassword):''):'Todavía sin información Wi-Fi.'}</p><h3>🅿 Aparcamiento y llegada</h3><p>${esc([data.parking,data.arrivalNotes].filter(Boolean).join('\n')||'Todavía sin indicaciones añadidas.')}</p>`}
+function syncLocalWizardData(){
+ try{
+  const props=JSON.parse(localStorage.getItem(PROPS_KEY)||'[]');
+  const idx=props.findIndex(p=>String(p.id)===String(selected));
+  if(idx<0)return;
+  const wd=props[idx].wizardData||{};
+  props[idx]={...props[idx],updated:new Date().toLocaleDateString('es-ES'),wizardData:{...wd,wifiName:data.wifiName,wifiPassword:data.wifiPassword,accessType:wizardAccessType(data.accessType),accessNotes:data.accessInstructions}};
+  localStorage.setItem(PROPS_KEY,JSON.stringify(props));
+ }catch(e){console.warn('Urban Stay local access sync failed',e)}
+}
 async function save(){
  if(!DB||!selected)return toast('No se pudo conectar con Supabase');
  const {data:row,error:rerr}=await DB.from('property_content').select('content').eq('property_id',selected).maybeSingle();if(rerr)return toast('No se pudo guardar');
- const content={...(row?.content||{}),access:{...data,updatedAt:undefined}};
+ const previous=row?.content||{};
+ const content={
+  ...previous,
+  wifiName:data.wifiName,
+  wifiPassword:data.wifiPassword,
+  accessType:wizardAccessType(data.accessType),
+  accessNotes:data.accessInstructions,
+  access:{accessType:data.accessType,accessCode:data.accessCode,accessInstructions:data.accessInstructions,wifiName:data.wifiName,wifiPassword:data.wifiPassword,parking:data.parking,arrivalNotes:data.arrivalNotes}
+ };
  const {error}=await DB.from('property_content').upsert({property_id:selected,content},{onConflict:'property_id'});if(error){console.error(error);return toast('No se pudo guardar el acceso')}
- data.updatedAt=new Date().toISOString();const u=document.querySelector('#accessUpdated');if(u)u.textContent='Actualizado ahora';toast('✓ Accesos guardados en Supabase');
+ syncLocalWizardData();
+ data.updatedAt=new Date().toISOString();const u=document.querySelector('#accessUpdated');if(u)u.textContent='Actualizado ahora';toast('✓ Accesos guardados y sincronizados');
 }
 async function renderAccess(){
  const host=document.querySelector('#appContent');if(!host)return;

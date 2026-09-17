@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 serve(async (req) => {
@@ -14,11 +15,19 @@ serve(async (req) => {
     const body = await req.json();
     const property = body?.property || {};
     const place = body?.place || {};
-    if (!place.name || !place.city) {
+    const placeName = String(place?.name || "").trim();
+    const placeCity = String(place?.city || property?.city || "").trim();
+
+    if (!placeName || !placeCity) {
+      console.error("Missing place data", {
+        hasName: Boolean(placeName),
+        hasPlaceCity: Boolean(place?.city),
+        hasPropertyCity: Boolean(property?.city),
+      });
       return json({ error: "name_and_city_required" }, 400);
     }
 
-    const prompt = `Busca y verifica información pública actual sobre este lugar para una guía digital de huéspedes.\n\nLugar: ${place.name}\nCiudad: ${place.city}\nAlojamiento de referencia: ${property.name || ""}\nDirección del alojamiento: ${property.address || ""}\nCiudad del alojamiento: ${property.city || ""}\nPaís: ${property.country || ""}\n\nIdentifica el establecimiento/lugar correcto. No inventes datos. Si un dato no se puede verificar, usa una cadena vacía. La descripción debe ser breve, útil, neutral y en español. La distancia debe ser desde el alojamiento cuando la dirección del alojamiento permita calcularla razonablemente. El rango de precios solo cuando sea aplicable. Devuelve exclusivamente los campos del esquema solicitado.`;
+    const prompt = `Busca y verifica información pública actual sobre este lugar para una guía digital de huéspedes.\n\nLugar: ${placeName}\nCiudad: ${placeCity}\nAlojamiento de referencia: ${property.name || ""}\nDirección del alojamiento: ${property.address || ""}\nCiudad del alojamiento: ${property.city || ""}\nPaís: ${property.country || ""}\n\nIdentifica el establecimiento/lugar correcto. No inventes datos. Si un dato no se puede verificar, usa una cadena vacía. La descripción debe ser breve, útil, neutral y en español. La distancia debe ser desde el alojamiento cuando la dirección del alojamiento permita calcularla razonablemente. El rango de precios solo cuando sea aplicable. Devuelve exclusivamente los campos del esquema solicitado.`;
 
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
@@ -69,6 +78,8 @@ serve(async (req) => {
     if (!text) return json({ error: "empty_ai_response" }, 502);
 
     const enriched = JSON.parse(text);
+    if (!enriched.city) enriched.city = placeCity;
+    if (!enriched.name) enriched.name = placeName;
     return json(enriched, 200);
   } catch (error) {
     console.error(error);

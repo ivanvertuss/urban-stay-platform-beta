@@ -93,22 +93,44 @@ serve(async (req) => {
     }
 
     if (property.address && destinationQuery) {
-      const originQuery = [property.address, property.city, property.country]
-        .filter(Boolean)
-        .join(", ");
+      const originCandidates = unique([
+        [property.address, property.city, property.country].filter(Boolean).join(", "),
+        String(property.address || ""),
+        [simplifyAddress(property.address), property.city, property.country].filter(Boolean).join(", "),
+        [simplifyAddress(property.address), property.city].filter(Boolean).join(", "),
+      ]);
+      const destinationCandidates = unique([
+        destinationQuery,
+        [simplifyAddress(enriched.address), enriched.city || placeCity, property.country].filter(Boolean).join(", "),
+        [enriched.name || placeName, enriched.city || placeCity].filter(Boolean).join(", "),
+        [placeName, placeCity].filter(Boolean).join(", "),
+      ]);
 
       try {
         const [origin, destination] = await Promise.all([
-          geocode(originQuery),
-          geocode(destinationQuery),
+          geocodeFirst(originCandidates, "origin"),
+          geocodeFirst(destinationCandidates, "destination"),
         ]);
 
         if (origin && destination) {
           enriched.distance = await routeDistance(origin, destination) || straightLineDistance(origin, destination);
+          console.log("Distance enrichment ok", { distance: enriched.distance });
+        } else {
+          console.warn("Distance coordinates unavailable", {
+            originFound: Boolean(origin),
+            destinationFound: Boolean(destination),
+            originCandidates,
+            destinationCandidates,
+          });
         }
       } catch (distanceError) {
         console.warn("Distance enrichment failed", distanceError);
       }
+    } else {
+      console.warn("Distance skipped", {
+        hasPropertyAddress: Boolean(property.address),
+        hasDestinationQuery: Boolean(destinationQuery),
+      });
     }
 
     return json(enriched, 200);
@@ -122,18 +144,47 @@ function buildGoogleMapsUrl(query: string) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
+function unique(values: string[]) {
+  return [...new Set(values.map(v => String(v || "").trim()).filter(Boolean))];
+}
+
+function simplifyAddress(value: unknown) {
+  return String(value || "")
+    .replace(/\b(piso|planta|puerta|portal|bloque|apto\.?|apartamento)\b[^,]*/gi, "")
+    .replace(/\s+/g, " ")
+    .replace(/\s*,\s*,+/g, ",")
+    .replace(/^\s*,|,\s*$/g, "")
+    .trim();
+}
+
+async function geocodeFirst(candidates: string[], label: string): Promise<Point | null> {
+  for (const query of candidates) {
+    const point = await geocode(query);
+    if (point) {
+      console.log("Geocode matched", { label, query });
+      return point;
+    }
+    console.warn("Geocode miss", { label, query });
+  }
+  return null;
+}
+
 async function geocode(query: string): Promise<Point | null> {
   if (!query.trim()) return null;
 
-  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`;
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&q=${encodeURIComponent(query)}`;
   const response = await fetch(url, {
     headers: {
       "Accept": "application/json",
-      "User-Agent": "UrbanStayPlatform/1.0",
+      "Accept-Language": "es",
+      "User-Agent": "UrbanStayPlatform/1.0 (contact: support@urban-stay-platform.com)",
     },
   });
 
-  if (!response.ok) return null;
+  if (!response.ok) {
+    console.warn("Geocode HTTP error", { status: response.status, query });
+    return null;
+  }
   const rows = await response.json();
   const first = Array.isArray(rows) ? rows[0] : null;
   if (!first?.lat || !first?.lon) return null;
@@ -144,7 +195,10 @@ async function geocode(query: string): Promise<Point | null> {
 async function routeDistance(origin: Point, destination: Point): Promise<string> {
   const url = `https://router.project-osrm.org/route/v1/driving/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?overview=false`;
   const response = await fetch(url);
-  if (!response.ok) return "";
+  if (!response.ok) {
+    console.warn("OSRM HTTP error", { status: response.status });
+    return "";
+  }
 
   const data = await response.json();
   const route = data?.routes?.[0];

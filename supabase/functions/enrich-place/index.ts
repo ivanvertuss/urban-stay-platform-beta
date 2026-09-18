@@ -169,10 +169,20 @@ async function geocodeFirst(candidates: string[], label: string): Promise<Point 
   return null;
 }
 
+function normalizeGeoText(value: unknown) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\\u0300-\\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9, ]/g, " ")
+    .replace(/\\s+/g, " ")
+    .trim();
+}
+
 async function geocode(query: string): Promise<Point | null> {
   if (!query.trim()) return null;
 
-  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&q=${encodeURIComponent(query)}`;
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&addressdetails=1&countrycodes=es&q=${encodeURIComponent(query)}`;
   const response = await fetch(url, {
     headers: {
       "Accept": "application/json",

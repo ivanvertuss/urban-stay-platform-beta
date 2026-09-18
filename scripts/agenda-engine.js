@@ -5,6 +5,9 @@ const TM_CONFIG_KEY='usp-ticketmaster-config';
 const TM_CACHE_KEY='usp-ticketmaster-event-cache-v1';
 const TM_REFRESH_MS=7*24*60*60*1000;
 const TM_SIZE=12;
+const AI_CACHE_KEY='usp-world-agenda-cache-v1';
+const AI_REFRESH_MS=24*60*60*1000;
+const DB=window.URBAN_STAY_SUPABASE&&window.supabase?.createClient?window.supabase.createClient(window.URBAN_STAY_SUPABASE.url,window.URBAN_STAY_SUPABASE.publishableKey):null;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 
@@ -23,6 +26,8 @@ function writeJson(key,value){localStorage.setItem(key,JSON.stringify(value))}
 function config(){return readJson(TM_CONFIG_KEY,{apiKey:''})}
 function cache(){return readJson(TM_CACHE_KEY,{})}
 function setCache(v){writeJson(TM_CACHE_KEY,v)}
+function aiCache(){return readJson(AI_CACHE_KEY,{})}
+function setAiCache(v){writeJson(AI_CACHE_KEY,v)}
 function cityKey(city,country){return `${String(city||'').trim().toLowerCase()}|${String(country||'').trim().toLowerCase()}`}
 function countryCode(country=''){
  const n=country.trim().toLowerCase();
@@ -89,6 +94,22 @@ async function fetchTicketmaster(city,country,{force=false}={}){
  const entry={city,country,updatedAt:Date.now(),events,source:'Ticketmaster'};
  all[key]=entry;setCache(all);return entry;
 }
+async function fetchWorldAgenda(city,country,{force=false}={}){
+ const key=cityKey(city,country),all=aiCache(),existing=all[key];
+ if(!force&&existing&&Date.now()-(existing.updatedAt||0)<AI_REFRESH_MS)return existing;
+ if(!DB)throw new Error('AGENDA_AI_UNAVAILABLE');
+ const {data:res,error}=await DB.functions.invoke('agenda-city',{body:{city,country}});
+ if(error)throw error;
+ const events=cleanEvents((res?.events||[]).map(e=>({...e,id:e.id||('local-'+String(e.name||'')+'-'+String(e.date||'')),source:e.source||'Fuente local'})));
+ const entry={city,country,updatedAt:Date.now(),events,source:'Urban Stay AI'};
+ all[key]=entry;setAiCache(all);return entry;
+}
+function combinedCity(city,country){
+ const tm=cachedCity(city,country),ai=aiCache()[cityKey(city,country)];
+ const events=cleanEvents([...(tm?.events||[]),...(ai?.events||[])]);
+ const updatedAt=Math.max(tm?.updatedAt||0,ai?.updatedAt||0);
+ return (tm||ai)?{city,country,updatedAt,events,source:'Urban Stay'}:null;
+}
 function cachedCity(city,country){
  const all=cache(),k=cityKey(city,country),entry=all[k];
  if(!entry)return null;
@@ -100,7 +121,7 @@ function formatDate(d){
  return new Intl.DateTimeFormat('es-ES',{day:'2-digit',month:'short'}).format(x).replace('.','').toUpperCase();
 }
 function eventCards(events=[]){
- if(!events.length)return `<div class="usp-agenda-empty">No hay próximos eventos de Ticketmaster para esta ciudad en este momento.</div>`;
+ if(!events.length)return `<div class="usp-agenda-empty">No hay próximos eventos verificados para esta ciudad en este momento.</div>`;
  return `<div class="usp-agenda-events">${events.slice(0,6).map(e=>`<a class="usp-agenda-event" href="${esc(e.url||'#')}" ${e.url?'target="_blank" rel="noopener"':''}>
   <span class="usp-agenda-date">${esc(formatDate(e.date))}</span><div><b>${esc(e.name)}</b><small>${esc([e.venue,e.city].filter(Boolean).join(' · '))}</small></div><em>${esc(e.category||'Evento')}</em>
  </a>`).join('')}</div>`;
@@ -119,14 +140,14 @@ function renderAgendaRoute(){
  styleOnce();
  const cfg=config(),props=properties();
  content.innerHTML=`<section class="page usp-agenda-page">
- <div class="usp-agenda-hero"><div><span class="section-label">AGENDA DINÁMICA</span><h1>Eventos por ciudad</h1><p>Cada propiedad utiliza su propia ciudad. Urban Stay consulta los próximos eventos, elimina automáticamente los que ya han pasado y renueva la agenda semanalmente.</p></div><span class="usp-agenda-badge">Ticketmaster · actualización 7 días</span></div>
+ <div class="usp-agenda-hero"><div><span class="section-label">AGENDA DINÁMICA</span><h1>Eventos por ciudad</h1><p>Cada propiedad utiliza su propia ciudad. Urban Stay consulta los próximos eventos, elimina automáticamente los que ya han pasado y renueva la agenda semanalmente.</p></div><span class="usp-agenda-badge">Urban Stay · agenda mundial automática</span></div>
  ${!cfg.apiKey?`<article class="card usp-agenda-setup"><div class="section-label">ACTIVACIÓN ÚNICA</div><h2>Conecta Ticketmaster</h2><p>Introduce una vez tu Consumer Key de Ticketmaster. Se guardará únicamente en este navegador de administración y no se escribe en el repositorio.</p><div class="usp-agenda-keyrow"><label>Ticketmaster Consumer Key<input type="password" id="uspTicketmasterKey" autocomplete="off" placeholder="Pega aquí tu API key"></label><button class="btn primary" id="uspSaveTicketmaster">Guardar y activar</button></div></article>`:''}
  <div id="uspAgendaProperties">${props.length?props.map(p=>agendaPropertyCard(p)).join(''):`<article class="card usp-agenda-property"><h2>Aún no hay propiedades con ciudad</h2><p>Cuando un propietario dé de alta un alojamiento, su ciudad aparecerá aquí automáticamente.</p></article>`}</div>
  </section>`;
  bindAgendaRoute();
 }
 function agendaPropertyCard(p){
- const {city,country}=parseCityCountry(p);const entry=cachedCity(city,country);const age=entry?.updatedAt?new Date(entry.updatedAt).toLocaleString('es-ES'):'Pendiente';
+ const {city,country}=parseCityCountry(p);const entry=combinedCity(city,country);const age=entry?.updatedAt?new Date(entry.updatedAt).toLocaleString('es-ES'):'Pendiente';
  return `<article class="card usp-agenda-property" data-agenda-property="${esc(p.id||p.name)}"><div class="usp-agenda-property-head"><div><h2>${esc(p.name||'Alojamiento')}</h2><span>📍 ${esc([city,country].filter(Boolean).join(', '))}</span></div><button class="btn secondary usp-refresh-city" data-city="${esc(city)}" data-country="${esc(country)}">Actualizar eventos</button></div>
  ${entry?eventCards(entry.events):`<div class="usp-agenda-empty">Agenda todavía no consultada para ${esc(city)}.</div>`}<div class="usp-agenda-meta">Última actualización: ${esc(age)} · Los eventos pasados se eliminan automáticamente.</div></article>`;
 }
@@ -138,7 +159,7 @@ function bindAgendaRoute(){
  });
  $$('.usp-refresh-city').forEach(b=>b.addEventListener('click',async()=>{
   b.disabled=true;b.textContent='Actualizando…';
-  try{await fetchTicketmaster(b.dataset.city,b.dataset.country,{force:true});renderAgendaRoute()}
+  try{await Promise.allSettled([fetchTicketmaster(b.dataset.city,b.dataset.country,{force:true}),fetchWorldAgenda(b.dataset.city,b.dataset.country,{force:true})]);renderAgendaRoute()}
   catch(e){b.disabled=false;b.textContent='Reintentar';alert(e.message==='NO_API_KEY'?'Conecta primero Ticketmaster.':`No se pudo actualizar Ticketmaster: ${e.message}`)}
  }));
 }
@@ -146,7 +167,7 @@ async function refreshAllCities(force=false){
  if(!config().apiKey)return;
  const unique=new Map();properties().forEach(p=>{const x=parseCityCountry(p);unique.set(cityKey(x.city,x.country),x)});
  for(const x of unique.values()){
-  try{await fetchTicketmaster(x.city,x.country,{force})}catch(e){console.warn('Urban Stay Agenda:',x.city,e)}
+  try{await Promise.allSettled([fetchTicketmaster(x.city,x.country,{force}),fetchWorldAgenda(x.city,x.country,{force})])}catch(e){console.warn('Urban Stay Agenda:',x.city,e)}
  }
  renderAgendaRoute();augmentWizardAgenda();
 }
@@ -156,11 +177,11 @@ function augmentWizardAgenda(){
  const d=readJson('usp-v1-draft',{}),city=(d.city||'').trim(),country=(d.country||'').trim();
  const holder=document.createElement('div');holder.id='uspAgendaLive';holder.className='usp-agenda-live';
  if(!city){holder.innerHTML=`<div class="usp-agenda-live-head"><h4>Agenda automática</h4></div><p>Cuando indiques la ciudad en Datos básicos, Urban Stay preparará automáticamente los eventos de ese destino.</p>`;box.appendChild(holder);return}
- const entry=cachedCity(city,country),cfg=config();
+ const entry=combinedCity(city,country),cfg=config();
  holder.innerHTML=`<div class="usp-agenda-live-head"><div><h4>Agenda automática de ${esc(city)}</h4><p>Los eventos se actualizarán por la ciudad de esta propiedad y los caducados se eliminarán solos.</p></div><span class="usp-agenda-badge">AUTO</span></div>
  ${!cfg.apiKey?`<p><b>Ticketmaster pendiente de activar en el módulo Agenda del Dashboard.</b></p>`:entry?.events?.length?`<div class="usp-agenda-mini">${entry.events.slice(0,4).map(e=>`<span><b>${esc(e.name)}</b><em>${esc(formatDate(e.date))}</em></span>`).join('')}</div>`:`<p>La agenda se cargará automáticamente al guardar/publicar la propiedad.</p>`}`;
  box.appendChild(holder);
- if(cfg.apiKey && !entry)fetchTicketmaster(city,country).then(()=>{holder.remove();augmentWizardAgenda()}).catch(()=>{});
+ if(!entry)Promise.allSettled([cfg.apiKey?fetchTicketmaster(city,country):Promise.resolve(),fetchWorldAgenda(city,country)]).then(()=>{holder.remove();augmentWizardAgenda()});
 }
 function observe(){
  document.addEventListener('click',e=>{
@@ -188,11 +209,12 @@ function observe(){
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 }
 function weeklyRefresh(){
- if(!config().apiKey)return;
  const all=cache();
  Object.keys(all).forEach(k=>{all[k].events=cleanEvents(all[k].events||[])});setCache(all);
  const stale=Object.values(all).some(x=>Date.now()-(x.updatedAt||0)>=TM_REFRESH_MS);
- if(stale||properties().some(p=>!cachedCity(parseCityCountry(p).city,parseCityCountry(p).country)))refreshAllCities(false);
+ const ai=aiCache();
+ const aiStale=properties().some(p=>{const x=parseCityCountry(p),e=ai[cityKey(x.city,x.country)];return !e||Date.now()-(e.updatedAt||0)>=AI_REFRESH_MS});
+ if(stale||aiStale||properties().some(p=>!combinedCity(parseCityCountry(p).city,parseCityCountry(p).country)))refreshAllCities(false);
 }
 
 styleOnce();observe();

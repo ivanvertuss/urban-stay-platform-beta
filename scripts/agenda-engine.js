@@ -166,8 +166,17 @@ function observe(){
  document.addEventListener('click',e=>{
   const route=e.target.closest?.('[data-route="agenda"]');if(route)setTimeout(renderAgendaRoute,30);
  });
+ let agendaRenderQueued=false;
  const mo=new MutationObserver(()=>{
-  if($('[data-route="agenda"]')?.classList.contains('active'))setTimeout(renderAgendaRoute,0);
+  // Avoid rebuilding Agenda in response to its own DOM changes. Rebuilding
+  // replaced the Ticketmaster input while the user was trying to use it.
+  if($('[data-route="agenda"]')?.classList.contains('active')){
+   const page=$('.usp-agenda-page');
+   if(!page && !agendaRenderQueued){
+    agendaRenderQueued=true;
+    setTimeout(()=>{agendaRenderQueued=false;renderAgendaRoute()},0);
+   }
+  }
   augmentWizardAgenda();
  });
  const start=()=>{

@@ -195,11 +195,53 @@ async function geocode(query: string): Promise<Point | null> {
     console.warn("Geocode HTTP error", { status: response.status, query });
     return null;
   }
-  const rows = await response.json();
-  const first = Array.isArray(rows) ? rows[0] : null;
-  if (!first?.lat || !first?.lon) return null;
 
-  return { lat: Number(first.lat), lon: Number(first.lon) };
+  const rows = await response.json();
+  const candidates = Array.isArray(rows) ? rows.filter((row: any) => row?.lat && row?.lon) : [];
+  if (!candidates.length) return null;
+
+  const queryText = normalizeGeoText(query);
+  const queryParts = queryText.split(",").map(x => x.trim()).filter(Boolean);
+  const localityText = queryParts.slice(1).join(" ");
+  const localityTokens = localityText.split(/\s+/).filter(x => x.length >= 3);
+
+  const scored = candidates.map((row: any) => {
+    const address = row?.address || {};
+    const resultText = normalizeGeoText([
+      row?.display_name,
+      address.city,
+      address.town,
+      address.village,
+      address.municipality,
+      address.county,
+      address.state,
+      address.postcode,
+      address.country,
+    ].filter(Boolean).join(" "));
+
+    let score = 0;
+    for (const token of localityTokens) {
+      if (resultText.includes(token)) score += 3;
+    }
+    if (localityText && resultText.includes(localityText)) score += 12;
+    if (queryText.includes("vigo") && resultText.includes("vigo")) score += 30;
+    if (queryText.includes("pontevedra") && resultText.includes("pontevedra")) score += 15;
+    if (queryText.includes("galicia") && resultText.includes("galicia")) score += 10;
+
+    return { row, score, resultText };
+  }).sort((a: any, b: any) => b.score - a.score);
+
+  const best = scored[0];
+  if (!best) return null;
+
+  // If the query explicitly names Vigo, never accept a result outside Vigo.
+  if (queryText.includes("vigo") && !best.resultText.includes("vigo")) {
+    console.warn("Rejected geocode outside Vigo", { query, result: best.row?.display_name });
+    return null;
+  }
+
+  console.log("Geocode selected", { query, result: best.row?.display_name, score: best.score });
+  return { lat: Number(best.row.lat), lon: Number(best.row.lon) };
 }
 
 async function routeDistance(origin: Point, destination: Point): Promise<string> {

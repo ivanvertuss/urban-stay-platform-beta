@@ -37,10 +37,12 @@ function parseCityCountry(p){
  return {city:parts[0]||'',country:parts.slice(1).join(', ')||''};
 }
 function properties(){
- const base=(window.URBAN_STAY_DATA?.properties||[]).map(x=>({...x}));
+ // Agenda must show only properties created by the signed-in owner.
+ // URBAN_STAY_DATA contains legacy/demo properties used elsewhere in the beta
+ // and must never leak into the owner's Agenda.
  const user=readJson('usp-v1-properties',[]);
  const map=new Map();
- [...base,...user].forEach(p=>map.set(p.id||p.name,p));
+ user.forEach(p=>map.set(p.id||p.name,p));
  return [...map.values()].filter(p=>parseCityCountry(p).city);
 }
 function isFutureEvent(e){

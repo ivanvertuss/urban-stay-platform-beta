@@ -1,9 +1,7 @@
 (() => {
 'use strict';
 
-const DB=window.URBAN_STAY_SUPABASE&&window.supabase?.createClient
-  ? window.supabase.createClient(window.URBAN_STAY_SUPABASE.url,window.URBAN_STAY_SUPABASE.publishableKey)
-  : null;
+const DB=window.URBAN_STAY_DB||null;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 const esc=(v='')=>String(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));

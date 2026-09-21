@@ -9,6 +9,7 @@ const DB = SUPABASE_CONFIG && window.supabase?.createClient
       SUPABASE_CONFIG.publishableKey
     )
   : null;
+window.URBAN_STAY_DB = DB;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 

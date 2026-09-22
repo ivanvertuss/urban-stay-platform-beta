@@ -732,6 +732,21 @@ function ensurePreviewButton(){
 function livePreviewHtml(){
  return `<div class="live-preview-head"><div><span class="eyebrow">VISTA PREVIA EN VIVO</span><b>${templateName(draft.template)}</b></div><div class="live-preview-actions"><div class="device-switch"><button type="button" data-device="mobile" class="${state.previewDevice==='mobile'?'active':''}">📱</button><button type="button" data-device="desktop" class="${state.previewDevice==='desktop'?'active':''}">💻</button></div><button type="button" id="closeLivePreview" class="live-preview-close" aria-label="Cerrar vista previa">×</button></div></div><div class="preview-stage"><div class="guest-phone ${state.previewDevice==='desktop'?'desktop':''}" id="guestPhone">${guestPreviewMarkup()}</div></div>`;
 }
+function guestBenefitsMarkup(){
+ const rows=Array.isArray(state.guestBenefits)?state.guestBenefits:[];
+ if(!rows.length)return '';
+ return `<div class="guest-section guest-benefits"><h3>✨ Sugerencias y promociones</h3>${rows.map(x=>`<div class="guest-list-item"><b>${esc(x.name||'Colaborador')}</b>${x.category?`<small style="display:block">${esc(x.category)}</small>`:''}${x.promotion?`<span style="display:block;font-weight:800;margin-top:4px">🎁 ${esc(x.promotion)}</span>`:''}</div>`).join('')}</div>`;
+}
+async function loadGuestBenefits(propertyId){
+ state.guestBenefits=[];
+ if(!DB||!propertyId){updatePreview();return}
+ try{
+  const {data,error}=await DB.from('property_collaborators').select('name,category,promotion,is_active').eq('property_id',propertyId).eq('is_active',true).order('created_at',{ascending:false});
+  if(error)throw error;
+  state.guestBenefits=data||[];
+ }catch(e){console.warn('Guest promotions preview:',e)}
+ updatePreview();
+}
 function guestPreviewMarkup(){
  const cover=draft.photos[draft.coverIndex]||draft.photos[0]||'';
  const parking=Object.entries((draft&&draft.parking)||{}).filter(([,v])=>v&&v.on);
@@ -744,6 +759,7 @@ function guestPreviewMarkup(){
  <div class="guest-section"><h3>WiFi</h3><p>${draft.wifiName?`Red: <b>${esc(draft.wifiName)}</b>`:'Añade la red WiFi'}</p></div>
  <div class="guest-section"><h3>Aparcamiento</h3>${parking.length?parking.map(([k,v])=>`<div class="guest-parking"><b>${parkingLabel(k)}</b><p>${esc(v.info||'Añade información para el huésped')}</p></div>`).join(''):'<p>Este apartado no se mostrará hasta que actives una opción.</p>'}</div>
  ${draft.restaurants.trim()?`<div class="guest-section"><h3>Restaurantes</h3>${draft.restaurants.split('\n').filter(Boolean).slice(0,5).map(x=>`<div class="guest-list-item">${esc(x)}</div>`).join('')}</div>`:''}
+ ${guestBenefitsMarkup()}
  ${draft.events?`<div class="guest-section"><h3>Agenda</h3><p>${esc(draft.eventNotes||'Próximos eventos de la ciudad.')}</p></div>`:''}
  </div>`;
 }
@@ -754,7 +770,14 @@ function updatePreview(){
  const quality=$('#liveQuality'); if(quality)quality.textContent=qualityScore()+'%';
 }
 
-function openFinalPreview(){
+function previewPropertyId(){
+ const exact=allProps().find(p=>String(p.id)===String(state.selectedProperty));
+ if(exact)return exact.id;
+ const byName=allProps().find(p=>String(p.name||'').trim().toLowerCase()===String(draft.name||'').trim().toLowerCase());
+ return byName?.id||null;
+}
+async function openFinalPreview(){
+ const pid=previewPropertyId();if(pid)await loadGuestBenefits(pid);
  const dlg=$('#finalPreviewDialog');if(!dlg)return;
  $('#finalPreviewTitle').textContent=`${draft.name||'Tu alojamiento'} · ${templateName(draft.template)}`;
  const frame=$('#finalPreviewFrame');frame.innerHTML=guestPreviewMarkup();
@@ -842,8 +865,9 @@ function bindWizard(){
  $$('[data-device]').forEach(b=>b.onclick=()=>{state.previewDevice=b.dataset.device;$$('[data-device]').forEach(x=>x.classList.toggle('active',x.dataset.device===state.previewDevice));const phone=$('#guestPhone');if(phone)phone.classList.toggle('desktop',state.previewDevice==='desktop')});
  $('#openPreviewFromReview')?.addEventListener('click',openFinalPreview);
 const previewToggle=$('#wizardPreviewToggle');
-if(previewToggle)previewToggle.onclick=()=>{
+if(previewToggle)previewToggle.onclick=async()=>{
   state.previewOpen=!state.previewOpen;
+  if(state.previewOpen){const pid=previewPropertyId();if(pid)await loadGuestBenefits(pid);}
   const panel=$('#wizardLivePanel');
   if(panel)panel.classList.toggle('open',state.previewOpen);
 };

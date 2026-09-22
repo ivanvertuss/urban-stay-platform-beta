@@ -5,14 +5,14 @@ function isAdminMode(){return new URLSearchParams(location.search).get('admin')=
 function isManagedRoute(route){return route==='access'||route==='guide'||route==='discover'}
 function applyRoleNavigation(){
  const admin=isAdminMode();
- document.querySelectorAll('.admin-only-nav').forEach(x=>x.hidden=!admin);
- document.querySelectorAll('.owner-nav-hide').forEach(x=>x.hidden=!admin);
+ document.querySelectorAll('.admin-only-nav').forEach(x=>{x.hidden=!admin;x.style.setProperty('display',admin?'':'none','important')});
+ document.querySelectorAll('.owner-nav-hide').forEach(x=>{x.hidden=!admin;x.style.setProperty('display',admin?'':'none','important')});
  if(!admin){
   document.querySelectorAll('[data-route]').forEach(x=>{if(ADMIN_ROUTES.has(x.dataset.route)&&x.dataset.route!=='properties')x.setAttribute('aria-hidden','true')});
   const current=activeRoute();
   if(current!=='properties'){
    document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.route==='properties'));
-   document.querySelector('[data-route="properties"]')?.click();
+   const properties=document.querySelector('.nav[data-route="properties"]');if(properties)properties.click();
   }
  }
 }

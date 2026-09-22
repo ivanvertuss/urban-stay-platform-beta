@@ -121,7 +121,8 @@ function bindBase(){
    await renderPartnersRoute();
   }catch(e){
    console.error('Create collaborator:',e);
-   alert('No se pudo crear el colaborador. Revisa la conexión con Supabase/IA e inténtalo de nuevo.');
+   const detail=e?.message||e?.context?.message||e?.error_description||String(e||'Error desconocido');
+   alert('No se pudo crear el colaborador.\n\nDetalle técnico: '+detail);
   }finally{busy=false;if(b&&document.body.contains(b)){b.disabled=false;b.textContent='✨ Crear colaborador'}}
  
  });

@@ -30,6 +30,7 @@ const state={
  wizardStep:0,
  previewOpen:false,
  previewDevice:'mobile',
+ guestBenefits:[],
  admin:new URLSearchParams(location.search).get('admin')==='1'
 };
 const tr=k=>(I18N[state.lang]||I18N.es)[k]||I18N.es[k]||k;
@@ -629,7 +630,7 @@ function render(){
 }
 
 const STEPS=[
- ['identity','Identidad'],['template','Diseño'],['photos','Fotos y logo'],['equipment','Equipamiento'],['wifi','WiFi y acceso'],['parking','Aparcamiento'],['local','Restaurantes'],['agenda','Agenda'],['publish','Revisión']
+ ['identity','Identidad'],['template','Diseño'],['photos','Fotos y logo'],['equipment','Equipamiento'],['wifi','WiFi y acceso'],['parking','Aparcamiento'],['local','Restaurantes'],['benefits','Sugerencias y promociones'],['agenda','Agenda'],['publish','Revisión']
 ];
 
 function openWizard(){
@@ -695,6 +696,7 @@ function stepHtml(key){
  if(key==='wifi')return `<div class="wizard-intro"><span class="wizard-icon">⌁</span><div><h3>WiFi y acceso</h3><p>Información práctica para reducir preguntas antes de la llegada.</p></div></div><div class="form-grid wizard-form">${fld('Red WiFi','wifiName')}${fld('Contraseña WiFi','wifiPassword')}<div class="field"><label>Tipo de acceso</label><select data-bind="accessType">${['Llaves','Caja de llaves','Smart Lock','Recepción'].map(x=>`<option ${draft.accessType===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="field full"><label>Instrucciones</label><textarea data-bind="accessNotes">${esc(draft.accessNotes)}</textarea></div></div>`;
  if(key==='parking')return `<div class="wizard-intro"><span class="wizard-icon">P</span><div><h3>Aparcamiento</h3><p>Activa todas las opciones disponibles y añade información distinta para cada una.</p></div></div><div class="parking-detail-list">${parkingCard('free','Aparcamiento gratuito','🚗','Calles recomendadas, restricciones...')}${parkingCard('ora','Zona regulada / ORA','🅿','Horarios, precio, app, límites...')}${parkingCard('private','Parking privado','🔑','Dirección, plaza, acceso, altura...')}${parkingCard('public','Parking público cercano','🏢','Nombre, dirección, precio, distancia...')}${parkingCard('ev','Carga de vehículo eléctrico','⚡','Ubicación, potencia, conector, coste...')}</div>`;
  if(key==='local')return `<div class="wizard-intro"><span class="wizard-icon">⌖</span><div><h3>Restaurantes y entorno</h3><p>Escribe solo nombres. La futura IA podrá completar fichas con dirección, precio, horarios, distancia y enlaces para que el propietario los revise.</p></div></div><div class="form-grid wizard-form"><div class="field full"><label>Restaurantes recomendados</label><textarea data-bind="restaurants" placeholder="Los Abetos&#10;La Central&#10;Nikko">${esc(draft.restaurants)}</textarea></div><div class="field full"><label>Servicios cercanos</label><textarea data-bind="services" placeholder="Supermercado&#10;Farmacia&#10;Taxi">${esc(draft.services)}</textarea></div></div><div class="ai-prep-note"><b>✨ Preparado para IA</b><span>En la versión online, Urban Assistant propondrá la información completa y tú decidirás qué publicar.</span></div>`;
+ if(key==='benefits')return `<div class="wizard-intro"><span class="wizard-icon">✨</span><div><h3>Sugerencias y promociones</h3><p>Gestiona los colaboradores y ventajas que verán los huéspedes de esta propiedad.</p></div></div><div id="propertyBenefitsPanel"><div class="ai-prep-note"><b>✨ Cargando colaboradores</b><span>Urban Stay está consultando las promociones activas de esta propiedad.</span></div></div>`;
  if(key==='agenda')return `<div class="wizard-intro"><span class="wizard-icon">□</span><div><h3>Agenda</h3><p>Decide si quieres mostrar próximos eventos y añade observaciones.</p></div></div><label class="agenda-switch"><input id="eventsToggle" type="checkbox" ${draft.events?'checked':''}><span class="toggle ${draft.events?'on':''}"></span><div><b>Mostrar agenda de eventos</b><small>${draft.events?'Activada':'Desactivada'}</small></div></label><div class="form-grid wizard-form" style="margin-top:15px"><div class="field full"><label>Observaciones</label><textarea data-bind="eventNotes" placeholder="Fiestas locales, conciertos o notas para la agenda">${esc(draft.eventNotes)}</textarea></div></div>`;
  return reviewHtml();
 }
@@ -825,6 +827,11 @@ function bindWizard(){
    draft.parking[k].info=el.value;saveDraft();
    try{updatePreview()}catch(err){console.warn('preview parking info',err)}
  });
+ const benefitsPanel=$('#propertyBenefitsPanel');
+ if(benefitsPanel){
+   const rows=Array.isArray(state.guestBenefits)?state.guestBenefits:[];
+   benefitsPanel.innerHTML=`<div class="ai-prep-note"><b>🎁 Ventajas para tus huéspedes</b><span>Las promociones activas aparecen automáticamente en la guía.</span></div><div style="display:grid;gap:10px;margin-top:14px">${rows.length?rows.map(x=>`<article class="card" style="padding:14px"><b>${esc(x.name||'Colaborador')}</b>${x.category?`<small style="display:block;margin-top:3px">${esc(x.category)}</small>`:''}${x.promotion?`<strong style="display:block;margin-top:7px">🎁 ${esc(x.promotion)}</strong>`:''}</article>`).join(''):'<article class="card" style="padding:14px"><b>Aún no hay promociones activas</b><p style="margin:6px 0 0">Cuando añadas un colaborador a esta propiedad aparecerá aquí y en la guía del huésped.</p></article>'}</div>`;
+ }
  const ev=$('#eventsToggle');if(ev)ev.onchange=()=>{draft.events=ev.checked;saveDraft();const wrap=ev.closest('.agenda-switch');const tg=wrap?.querySelector('.toggle');if(tg)tg.classList.toggle('on',ev.checked);const sm=wrap?.querySelector('small');if(sm)sm.textContent=ev.checked?'Activada':'Desactivada';updatePreview()};
  const logo=$('#logoInput');if(logo)logo.onchange=async e=>{
    const file=e.target.files?.[0],status=$('#photoUploadStatus');

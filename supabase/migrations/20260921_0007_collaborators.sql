@@ -22,6 +22,7 @@ create table if not exists public.property_collaborators (
   updated_at timestamptz not null default now()
 );
 
+grant select, insert, update, delete on table public.property_collaborators to authenticated;
 alter table public.property_collaborators enable row level security;
 
 drop policy if exists "Owners can view their collaborators" on public.property_collaborators;
@@ -66,6 +67,7 @@ create table if not exists public.urban_stay_partners (
   updated_at timestamptz not null default now()
 );
 
+grant select on table public.urban_stay_partners to authenticated;
 alter table public.urban_stay_partners enable row level security;
 drop policy if exists "Authenticated users can view active Urban Stay partners" on public.urban_stay_partners;
 create policy "Authenticated users can view active Urban Stay partners"

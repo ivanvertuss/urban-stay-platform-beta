@@ -633,8 +633,9 @@ const STEPS=[
  ['identity','Identidad'],['template','Diseño'],['photos','Fotos y logo'],['equipment','Equipamiento'],['wifi','WiFi y acceso'],['parking','Aparcamiento'],['local','Restaurantes'],['benefits','Sugerencias y promociones'],['agenda','Agenda'],['publish','Revisión']
 ];
 
-function openWizard(){
+async function openWizard(){
  draft=loadDraft(); state.wizardStep=0; state.previewOpen=false;
+ if(state.selectedProperty)await loadPropertyBenefits(state.selectedProperty);
  renderWizard();
  const dlg=$('#propertyWizard'); if(dlg && !dlg.open)dlg.showModal();
 }
@@ -735,20 +736,49 @@ function livePreviewHtml(){
  return `<div class="live-preview-head"><div><span class="eyebrow">VISTA PREVIA EN VIVO</span><b>${templateName(draft.template)}</b></div><div class="live-preview-actions"><div class="device-switch"><button type="button" data-device="mobile" class="${state.previewDevice==='mobile'?'active':''}">📱</button><button type="button" data-device="desktop" class="${state.previewDevice==='desktop'?'active':''}">💻</button></div><button type="button" id="closeLivePreview" class="live-preview-close" aria-label="Cerrar vista previa">×</button></div></div><div class="preview-stage"><div class="guest-phone ${state.previewDevice==='desktop'?'desktop':''}" id="guestPhone">${guestPreviewMarkup()}</div></div>`;
 }
 function guestBenefitsMarkup(){
- const rows=Array.isArray(state.guestBenefits)?state.guestBenefits:[];
+ const rows=(Array.isArray(state.guestBenefits)?state.guestBenefits:[]).filter(x=>x.is_active!==false);
  if(!rows.length)return '';
  return `<div class="guest-section guest-benefits"><h3>✨ Sugerencias y promociones</h3>${rows.map(x=>`<div class="guest-list-item"><b>${esc(x.name||'Colaborador')}</b>${x.category?`<small style="display:block">${esc(x.category)}</small>`:''}${x.promotion?`<span style="display:block;font-weight:800;margin-top:4px">🎁 ${esc(x.promotion)}</span>`:''}</div>`).join('')}</div>`;
 }
-async function loadGuestBenefits(propertyId){
+async function loadPropertyBenefits(propertyId){
  state.guestBenefits=[];
- if(!DB||!propertyId){updatePreview();return}
+ if(!DB||!propertyId)return;
  try{
-  const {data,error}=await DB.from('property_collaborators').select('name,category,promotion,is_active').eq('property_id',propertyId).eq('is_active',true).order('created_at',{ascending:false});
+  const {data,error}=await DB.from('property_collaborators').select('*').eq('property_id',propertyId).order('created_at',{ascending:false});
   if(error)throw error;
   state.guestBenefits=data||[];
- }catch(e){console.warn('Guest promotions preview:',e)}
+ }catch(e){console.warn('Property promotions:',e)}
+}
+async function loadGuestBenefits(propertyId){
+ await loadPropertyBenefits(propertyId);
  updatePreview();
 }
+async function refreshPropertyBenefits(){
+ const pid=previewPropertyId();if(pid)await loadPropertyBenefits(pid);
+ renderWizard();
+}
+async function createPropertyBenefit(){
+ const pid=previewPropertyId();if(!DB||!pid){alert('Guarda primero la propiedad para poder añadir colaboradores.');return}
+ const name=$('#propertyBenefitName')?.value.trim(),city=$('#propertyBenefitCity')?.value.trim(),promotion=$('#propertyBenefitPromo')?.value.trim();
+ if(!name||!city){alert('Indica al menos el nombre del negocio y la ciudad.');return}
+ const btn=$('#propertyBenefitCreate');if(btn){btn.disabled=true;btn.textContent='✨ Buscando y completando con IA…'}
+ try{
+  const {data:auth,error:authError}=await DB.auth.getUser();if(authError)throw authError;
+  const user=auth?.user;if(!user)throw new Error('Tu sesión ha caducado.');
+  const property=allProps().find(p=>String(p.id)===String(pid))||{id:pid,name:draft.name,city:draft.city,country:draft.country,address:draft.address};
+  const {data:ai,error:aiError}=await DB.functions.invoke('enrich-place',{body:{property:{name:property.name||draft.name||'',city:draft.city||property.city||'',country:draft.country||property.country||'',address:draft.address||property.address||''},place:{name,city}}});
+  if(aiError)throw aiError;
+  const distanceText=String(ai?.distance||''),m=distanceText.match(/(\d+(?:[.,]\d+)?)\s*(km|m)\b/i);
+  let distanceMeters=null;if(m){const n=Number(m[1].replace(',','.'));distanceMeters=m[2].toLowerCase()==='km'?Math.round(n*1000):Math.round(n)}
+  const payload={property_id:pid,owner_id:user.id,name:ai?.name||name,city:ai?.city||city,promotion:promotion||null,category:ai?.type||null,description:ai?.description||null,address:ai?.address||null,website:ai?.website||null,image_url:ai?.imageUrl||null,distance_meters:distanceMeters,enrichment_status:'completed',is_active:true};
+  const {error}=await DB.from('property_collaborators').insert(payload);if(error)throw error;
+  await refreshPropertyBenefits();
+ }catch(e){console.error('Create property collaborator:',e);alert('No se pudo crear el colaborador.\n\nDetalle técnico: '+(e?.message||String(e)))}
+ finally{if(btn&&document.body.contains(btn)){btn.disabled=false;btn.textContent='✨ Añadir colaborador'}}
+}
+async function togglePropertyBenefit(id,next){const {error}=await DB.from('property_collaborators').update({is_active:next,updated_at:new Date().toISOString()}).eq('id',id);if(error)alert('No se pudo actualizar.');else await refreshPropertyBenefits()}
+async function editPropertyBenefit(id,current){const promotion=prompt('Promoción o ventaja para los huéspedes:',current||'');if(promotion===null)return;const {error}=await DB.from('property_collaborators').update({promotion:promotion.trim()||null,updated_at:new Date().toISOString()}).eq('id',id);if(error)alert('No se pudo actualizar la promoción.');else await refreshPropertyBenefits()}
+async function deletePropertyBenefit(id){if(!confirm('¿Eliminar este colaborador?'))return;const {error}=await DB.from('property_collaborators').delete().eq('id',id);if(error)alert('No se pudo eliminar.');else await refreshPropertyBenefits()}
 function guestPreviewMarkup(){
  const cover=draft.photos[draft.coverIndex]||draft.photos[0]||'';
  const parking=Object.entries((draft&&draft.parking)||{}).filter(([,v])=>v&&v.on);
@@ -830,7 +860,11 @@ function bindWizard(){
  const benefitsPanel=$('#propertyBenefitsPanel');
  if(benefitsPanel){
    const rows=Array.isArray(state.guestBenefits)?state.guestBenefits:[];
-   benefitsPanel.innerHTML=`<div class="ai-prep-note"><b>🎁 Ventajas para tus huéspedes</b><span>Las promociones activas aparecen automáticamente en la guía.</span></div><div style="display:grid;gap:10px;margin-top:14px">${rows.length?rows.map(x=>`<article class="card" style="padding:14px"><b>${esc(x.name||'Colaborador')}</b>${x.category?`<small style="display:block;margin-top:3px">${esc(x.category)}</small>`:''}${x.promotion?`<strong style="display:block;margin-top:7px">🎁 ${esc(x.promotion)}</strong>`:''}</article>`).join(''):'<article class="card" style="padding:14px"><b>Aún no hay promociones activas</b><p style="margin:6px 0 0">Cuando añadas un colaborador a esta propiedad aparecerá aquí y en la guía del huésped.</p></article>'}</div>`;
+   benefitsPanel.innerHTML=`<article class="card" style="padding:16px;margin-bottom:14px"><div class="section-label">AÑADIR COLABORADOR</div><p style="margin:5px 0 12px">Indica el negocio y la promoción. Urban Stay completará su ficha con IA.</p><div class="form-grid wizard-form"><div class="field"><label>Nombre del negocio</label><input id="propertyBenefitName" placeholder="Ej. Casa Moncho"></div><div class="field"><label>Ciudad</label><input id="propertyBenefitCity" value="${esc(draft.city||'')}" placeholder="Ej. Vigo"></div><div class="field full"><label>Promoción o ventaja</label><input id="propertyBenefitPromo" placeholder="Ej. 10% de descuento para huéspedes"></div></div><div style="display:flex;justify-content:flex-end;margin-top:12px"><button type="button" class="btn primary" id="propertyBenefitCreate">✨ Añadir colaborador</button></div></article><div class="ai-prep-note"><b>🎁 Ventajas para tus huéspedes</b><span>Solo las promociones activas aparecen en la guía.</span></div><div style="display:grid;gap:10px;margin-top:14px">${rows.length?rows.map(x=>`<article class="card" style="padding:14px;opacity:${x.is_active?1:.58}"><div style="display:flex;justify-content:space-between;gap:10px"><div><b>${esc(x.name||'Colaborador')}</b>${x.category?`<small style="display:block;margin-top:3px">${esc(x.category)}</small>`:''}</div><small>${x.is_active?'● Activo':'○ Inactivo'}</small></div>${x.promotion?`<strong style="display:block;margin-top:7px">🎁 ${esc(x.promotion)}</strong>`:''}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="btn secondary" data-benefit-toggle="${x.id}" data-next="${x.is_active?'false':'true'}">${x.is_active?'Desactivar':'Activar'}</button><button type="button" class="btn secondary" data-benefit-edit="${x.id}" data-promo="${esc(x.promotion||'')}">Editar promoción</button><button type="button" class="btn secondary" data-benefit-delete="${x.id}">Eliminar</button></div></article>`).join(''):'<article class="card" style="padding:14px"><b>Aún no hay promociones</b><p style="margin:6px 0 0">Añade el primer colaborador de esta propiedad.</p></article>'}</div>`;
+   $('#propertyBenefitCreate')?.addEventListener('click',createPropertyBenefit);
+   $('[data-benefit-toggle]').forEach(b=>b.onclick=()=>togglePropertyBenefit(b.dataset.benefitToggle,b.dataset.next==='true'));
+   $('[data-benefit-edit]').forEach(b=>b.onclick=()=>editPropertyBenefit(b.dataset.benefitEdit,b.dataset.promo||''));
+   $('[data-benefit-delete]').forEach(b=>b.onclick=()=>deletePropertyBenefit(b.dataset.benefitDelete));
  }
  const ev=$('#eventsToggle');if(ev)ev.onchange=()=>{draft.events=ev.checked;saveDraft();const wrap=ev.closest('.agenda-switch');const tg=wrap?.querySelector('.toggle');if(tg)tg.classList.toggle('on',ev.checked);const sm=wrap?.querySelector('small');if(sm)sm.textContent=ev.checked?'Activada':'Desactivada';updatePreview()};
  const logo=$('#logoInput');if(logo)logo.onchange=async e=>{

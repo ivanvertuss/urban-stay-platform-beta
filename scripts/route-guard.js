@@ -1,8 +1,8 @@
 (() => {
 'use strict';
-const ADMIN_ROUTES=new Set(['dashboard','guide','access','discover','agenda','partners','lab','settings','moderation']);
+const ADMIN_ROUTES=new Set(['dashboard','guide','access','discover','agenda','urban-partners','lab','settings','moderation']);
 function isAdminMode(){return new URLSearchParams(location.search).get('admin')==='1'}
-function isManagedRoute(route){return route==='access'||route==='guide'||route==='discover'}
+function isManagedRoute(route){return route==='access'||route==='guide'||route==='discover'||route==='partners'||route==='urban-partners'}
 function applyRoleNavigation(){
  const admin=isAdminMode();
  document.querySelectorAll('.admin-only-nav').forEach(x=>{x.hidden=!admin;x.style.setProperty('display',admin?'':'none','important')});
@@ -30,6 +30,8 @@ function releaseWhenReady(){
  if(route==='access'&&document.querySelector('#accessManagerRoot'))host.style.visibility='visible';
  if(route==='guide'&&document.querySelector('.usp-guide'))host.style.visibility='visible';
  if(route==='discover'&&document.querySelector('#discoverManagerRoot'))host.style.visibility='visible';
+ if(route==='partners'&&document.querySelector('.usp-partners-page'))host.style.visibility='visible';
+ if(route==='urban-partners'&&document.querySelector('.usp-urban-admin-page'))host.style.visibility='visible';
 }
 document.addEventListener('DOMContentLoaded',()=>{
  const host=document.querySelector('#appContent');if(!host)return;

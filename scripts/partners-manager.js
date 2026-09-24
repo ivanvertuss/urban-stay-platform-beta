@@ -25,14 +25,6 @@ function locationOf(p){
  const parts=String(p?.city||'').split(',').map(x=>x.trim());
  return {city:parts[0]||'',region:'',country:parts.slice(1).join(', ')||''};
 }
-function norm(v=''){return String(v).trim().toLocaleLowerCase('es')}
-function partnerApplies(row,loc){
- const type=row.partner_type||'local';
- if(type==='global')return true;
- if(type==='national')return !row.country||norm(row.country)===norm(loc.country);
- if(type==='regional')return (!row.country||norm(row.country)===norm(loc.country))&&(!row.region||norm(row.region)===norm(loc.region));
- return (!row.country||norm(row.country)===norm(loc.country))&&(!row.city||norm(row.city)===norm(loc.city));
-}
 function styleOnce(){
  if($('#uspPartnerStyles'))return;
  const s=document.createElement('style');s.id='uspPartnerStyles';s.textContent=`
@@ -47,21 +39,15 @@ async function enrichPartner(place,property){
  return data||{};
 }
 async function loadRows(propertyId){
- if(!DB)return {mine:[],urban:[]};
- const [mineRes,urbanRes]=await Promise.all([
-  DB.from('property_collaborators').select('*').eq('property_id',propertyId).order('created_at',{ascending:false}),
-  DB.from('urban_stay_partners').select('*').order('created_at',{ascending:false})
- ]);
- if(mineRes.error)throw mineRes.error;
- if(urbanRes.error)throw urbanRes.error;
- return {mine:mineRes.data||[],urban:urbanRes.data||[]};
+ if(!DB)return [];
+ const {data,error}=await DB.from('property_collaborators').select('*').eq('property_id',propertyId).order('created_at',{ascending:false});
+ if(error)throw error;
+ return data||[];
 }
 function mineCard(x){
  return `<article class="usp-partner-card ${x.is_active?'':'off'}"><div class="usp-partner-card-head"><div><h3>${esc(x.name)}</h3><small>${esc(x.category||x.city||'Colaborador')}</small></div><span>${x.is_active?'● Activo':'○ Inactivo'}</span></div>${x.promotion?`<div class="usp-promo">🎁 ${esc(x.promotion)}</div>`:''}<div class="usp-partner-actions"><button data-partner-toggle="${x.id}" data-next="${x.is_active?'false':'true'}">${x.is_active?'Desactivar':'Activar'}</button><button data-partner-edit="${x.id}" data-promo="${esc(x.promotion||'')}">Editar promoción</button><button class="danger" data-partner-delete="${x.id}">Eliminar</button></div></article>`;
 }
-function urbanCard(x){
- return `<article class="usp-partner-card usp-urban-card"><div class="usp-urban-label">VENTAJA URBAN STAY · ${esc((x.partner_type||'local').toUpperCase())}</div><h3>${esc(x.name)}</h3><small>${esc(x.category||'Colaborador Urban Stay')}</small>${x.promotion?`<div class="usp-promo">🎁 ${esc(x.promotion)}</div>`:''}${x.description?`<p>${esc(x.description)}</p>`:''}</article>`;
-}
+
 async function renderPartnersRoute(){
  const content=$('#appContent');if(!content||!$('[data-route="partners"]')?.classList.contains('active'))return;
  styleOnce();
@@ -70,24 +56,20 @@ async function renderPartnersRoute(){
  if(!selectedPropertyId||!props.some(p=>String(p.id)===String(selectedPropertyId)))selectedPropertyId=props[0]?.id||null;
  const selected=props.find(p=>String(p.id)===String(selectedPropertyId));
  content.innerHTML=`<section class="page usp-partners-page"><div class="usp-partners-hero"><div><span class="section-label">COLABORADORES</span><h1>Ventajas para tus huéspedes</h1><p>Añade solo el negocio, la ciudad y la oferta. Urban Stay deja preparada la ficha para completar el resto automáticamente.</p></div><span class="usp-ai-badge">✨ Preparado para IA</span></div>
- ${props.length?`<article class="card usp-partner-toolbar"><label>Propiedad<select id="uspPartnerProperty">${props.map(p=>`<option value="${esc(p.id)}" ${String(p.id)===String(selectedPropertyId)?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label><span>Mis colaboradores + Ventajas Urban Stay</span></article>
+ ${props.length?`<article class="card usp-partner-toolbar"><label>Propiedad<select id="uspPartnerProperty">${props.map(p=>`<option value="${esc(p.id)}" ${String(p.id)===String(selectedPropertyId)?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label><span>Colaboradores de esta propiedad</span></article>
  <article class="card usp-partner-form"><div class="section-label">AÑADIR COLABORADOR</div><h2>Tú dinos quién es y qué ofrece.</h2><p>Urban Stay buscará el negocio y completará automáticamente su ficha con IA antes de guardarlo.</p><div class="usp-partner-fields"><label>Nombre del negocio<input id="uspPartnerName" placeholder="Ej. Casa Moncho"></label><label>Ciudad<input id="uspPartnerCity" value="${esc(locationOf(selected).city)}" placeholder="Ej. Vigo"></label><label class="wide">Promoción o ventaja<input id="uspPartnerPromo" placeholder="Ej. 10% de descuento para huéspedes"></label></div><div class="usp-partner-form-actions"><button class="btn primary" id="uspPartnerCreate">✨ Crear colaborador</button></div></article>
  <article class="card usp-partner-section"><div class="section-label">MIS COLABORADORES</div><h2>Seleccionados por ti</h2><div id="uspMinePartners"><div class="usp-empty">Cargando colaboradores…</div></div></article>
- <article class="card usp-partner-section"><div class="section-label">VENTAJAS URBAN STAY</div><h2>Acuerdos disponibles para esta propiedad</h2><p>Se muestran automáticamente según la ciudad, región o país del alojamiento.</p><div id="uspUrbanPartners"><div class="usp-empty">Buscando ventajas disponibles…</div></div></article>`:`<article class="card usp-partner-section"><h2>Primero crea una propiedad</h2><p>Cuando tengas un alojamiento, podrás añadir colaboradores y recibir automáticamente las Ventajas Urban Stay de su zona.</p></article>`}</section>`;
+`:`<article class="card usp-partner-section"><h2>Primero crea una propiedad</h2><p>Cuando tengas un alojamiento, podrás añadir colaboradores y recibir automáticamente las Ventajas Urban Stay de su zona.</p></article>`}</section>`;
  if(!props.length)return;
  bindBase();
  try{
   const rows=await loadRows(selectedPropertyId);
-  const loc=locationOf(selected);
-  const urban=rows.urban.filter(x=>partnerApplies(x,loc));
-  $('#uspMinePartners').innerHTML=rows.mine.length?`<div class="usp-partner-grid">${rows.mine.map(mineCard).join('')}</div>`:'<div class="usp-empty">Todavía no has añadido colaboradores a esta propiedad.</div>';
-  $('#uspUrbanPartners').innerHTML=urban.length?`<div class="usp-partner-grid">${urban.map(urbanCard).join('')}</div>`:'<div class="usp-empty">Todavía no hay acuerdos Urban Stay activos para esta ubicación.</div>';
+  $('#uspMinePartners').innerHTML=rows.length?`<div class="usp-partner-grid">${rows.map(mineCard).join('')}</div>`:'<div class="usp-empty">Todavía no has añadido colaboradores a esta propiedad.</div>';
   bindRowActions();
  }catch(e){
   console.error('Urban Stay Partners:',e);
   const msg='<div class="usp-empty">No se pudieron cargar los colaboradores. Comprueba la sesión y vuelve a intentarlo.</div>';
   if($('#uspMinePartners'))$('#uspMinePartners').innerHTML=msg;
-  if($('#uspUrbanPartners'))$('#uspUrbanPartners').innerHTML=msg;
  }
 }
 function bindBase(){

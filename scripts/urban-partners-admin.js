@@ -1,0 +1,20 @@
+(() => {
+'use strict';
+const DB=window.URBAN_STAY_DB||null;
+const $=(s,r=document)=>r.querySelector(s);
+const esc=(v='')=>String(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function isAdmin(){return new URLSearchParams(location.search).get('admin')==='1'}
+function styleOnce(){if($('#uspUrbanAdminStyles'))return;const s=document.createElement('style');s.id='uspUrbanAdminStyles';s.textContent=`
+.usp-urban-admin-page{display:grid;gap:18px}.usp-urban-admin-hero{padding:24px;border-radius:18px;background:linear-gradient(135deg,#071f34,#0d3b5b);color:#fff}.usp-urban-admin-hero h1{margin:6px 0 8px;font:600 32px Georgia,serif}.usp-urban-admin-hero p{margin:0;color:#dbe7ef}.usp-urban-admin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.usp-urban-admin-card{padding:17px;border:1px solid var(--line,#dfe6ea);border-radius:14px;background:#fff}.usp-urban-admin-card.off{opacity:.58}.usp-urban-admin-card h3{margin:5px 0}.usp-urban-admin-card small{color:var(--muted,#6d7b86)}.usp-urban-admin-type{font-size:9px;font-weight:900;letter-spacing:.08em;color:#9a7828}.usp-urban-admin-promo{margin:12px 0;padding:10px;border-radius:10px;background:#fff8e8;font-weight:800}.usp-urban-admin-empty{padding:18px;border-radius:12px;background:#f6f8f9;color:#6d7b86}@media(max-width:720px){.usp-urban-admin-grid{grid-template-columns:1fr}}`;document.head.appendChild(s)}
+async function rows(){if(!DB)return[];const {data,error}=await DB.from('urban_stay_partners').select('*').order('created_at',{ascending:false});if(error)throw error;return data||[]}
+function card(x){const area=[x.city,x.region,x.country].filter(Boolean).join(' · ')||'Ámbito general';return `<article class="usp-urban-admin-card ${x.is_active===false?'off':''}"><div class="usp-urban-admin-type">${esc((x.partner_type||'local').toUpperCase())} · ${x.is_active===false?'INACTIVO':'ACTIVO'}</div><h3>${esc(x.name)}</h3><small>${esc(x.category||'Acuerdo comercial')} · ${esc(area)}</small>${x.promotion?`<div class="usp-urban-admin-promo">🎁 ${esc(x.promotion)}</div>`:''}${x.description?`<p>${esc(x.description)}</p>`:''}</article>`}
+async function render(){
+ const host=$('#appContent');if(!host||!isAdmin()||!$('[data-route="urban-partners"]')?.classList.contains('active'))return;
+ styleOnce();host.innerHTML=`<section class="page usp-urban-admin-page"><div class="usp-urban-admin-hero"><span class="section-label">ADMINISTRACIÓN URBAN STAY</span><h1>Acuerdos Urban Stay</h1><p>Panel interno para gestionar y supervisar los acuerdos comerciales propios de Urban Stay. Esta información está separada de los colaboradores que crea cada propietario.</p></div><article class="card" style="padding:20px"><div class="section-label">ACUERDOS COMERCIALES</div><h2>Red Urban Stay</h2><p>Acuerdos locales, regionales, nacionales y globales registrados en la plataforma.</p><div id="uspUrbanAdminRows" class="usp-urban-admin-empty">Cargando acuerdos…</div></article></section>`;
+ try{const data=await rows();$('#uspUrbanAdminRows').className=data.length?'usp-urban-admin-grid':'usp-urban-admin-empty';$('#uspUrbanAdminRows').innerHTML=data.length?data.map(card).join(''):'Todavía no hay acuerdos comerciales Urban Stay registrados.'}catch(e){console.error('Urban Stay admin partners:',e);$('#uspUrbanAdminRows').textContent='No se pudieron cargar los acuerdos Urban Stay.'}
+}
+document.addEventListener('click',e=>{if(e.target.closest?.('[data-route="urban-partners"]'))setTimeout(render,30)});
+const start=()=>{const host=$('#appContent');if(!host)return;new MutationObserver(()=>{if($('[data-route="urban-partners"]')?.classList.contains('active')&&!$('.usp-urban-admin-page'))setTimeout(render,0)}).observe(host,{childList:true,subtree:false})};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+window.URBAN_STAY_ADMIN_PARTNERS={render};
+})();

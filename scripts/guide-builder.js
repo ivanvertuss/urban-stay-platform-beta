@@ -26,13 +26,15 @@ function propLocation(p){
  const rawCity=wd.city||p?.city||'';
  const city=String(rawCity).split(',')[0].trim();
  const country=wd.country||p?.country||String(rawCity).split(',').slice(1).join(',').trim();
+ const province=wd.province||p?.province||'';
  const region=wd.region||p?.region||'';
- return {city,region,country};
+ return {city,province,region,country};
 }
 function urbanApplies(x,loc){
  const type=x.partner_type||'local';
  if(type==='global')return true;
  if(type==='national')return !!loc.country&&norm(x.country)===norm(loc.country);
+ if(type==='provincial')return !!loc.province&&!!loc.country&&norm(x.region)===norm(loc.province)&&norm(x.country)===norm(loc.country);
  if(type==='regional')return !!loc.region&&!!loc.country&&norm(x.region)===norm(loc.region)&&norm(x.country)===norm(loc.country);
  return !!loc.city&&!!loc.country&&norm(x.city)===norm(loc.city)&&norm(x.country)===norm(loc.country);
 }

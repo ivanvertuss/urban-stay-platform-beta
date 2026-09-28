@@ -87,13 +87,20 @@ function allProps(){
 function setPropertyStatus(id,status){
  const st=getPropState();st[id]={...(st[id]||{}),status,deleted:false};savePropState(st);render();toast(status==='inactive'?'Propiedad inactiva':'Propiedad activa');
 }
-function deleteProperty(id){
- const p=allProps().find(x=>x.id===id);if(!p)return;
- if(!confirm(`¿Seguro que quieres eliminar "${p.name}"? Esta acción quitará la propiedad del panel.`))return;
+async function deleteProperty(id){
+ const p=allProps().find(x=>String(x.id)===String(id));if(!p)return;
+ if(!confirm(`¿Seguro que quieres eliminar "${p.name}"? Se eliminará definitivamente la propiedad y sus datos asociados.`))return;
+ if(DB){
+  const {data:{user},error:userError}=await DB.auth.getUser();
+  if(userError||!user){toast('Tu sesión ha caducado. Vuelve a iniciar sesión.');return}
+  const {error}=await DB.from('properties').delete().eq('id',id).eq('owner_id',user.id);
+  if(error){console.error('Error deleting property',error);toast('No se pudo eliminar la propiedad.');return}
+ }
  const users=getUserProps();
- if(users.some(x=>x.id===id)){saveUserProps(users.filter(x=>x.id!==id))}
- else{const st=getPropState();st[id]={...(st[id]||{}),deleted:true};savePropState(st)}
- render();toast('Propiedad eliminada');
+ saveUserProps(users.filter(x=>String(x.id)!==String(id)));
+ const st=getPropState();delete st[id];savePropState(st);
+ if(String(state.selectedProperty)===String(id)){state.selectedProperty=null;closeWizard()}
+ render();toast('Propiedad eliminada definitivamente');
 }
 function blankDraft(){
  return {

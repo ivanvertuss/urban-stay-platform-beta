@@ -94,6 +94,7 @@ async function patchPropertyBenefits(propertyId){
 }
 function patchRepeatedly(content){[0,50,120,250,500].forEach(ms=>setTimeout(()=>{patchWizardPreview(content);const active=[...document.querySelectorAll('[data-jump]')].find(x=>x.classList.contains('active'));if(active?.textContent.includes('Sugerencias y promociones'))patchPropertyBenefits(latestPropertyId)},ms))}
 document.addEventListener('click',async e=>{
+ if(e.target.closest?.('[data-delete-property],[data-send-review],[data-status-property],[data-property-actions],button,a,input,select,textarea,label'))return;
  const trigger=e.target.closest?.('[data-open-property]');if(!trigger||bypass)return;const id=trigger.dataset.openProperty;if(!id)return;
  e.preventDefault();e.stopImmediatePropagation();let content=null;
  try{content=await syncProperty(id)}catch(err){console.warn('Urban Stay wizard sync failed',err)}

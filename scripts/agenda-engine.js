@@ -147,7 +147,7 @@ function renderAgendaRoute(){
  bindAgendaRoute();
 }
 function agendaPropertyCard(p){
- const {city,country}=parseCityCountry(p);const entry=combinedCity(city,country);const age=entry?.updatedAt?new Date(entry.updatedAt).toLocaleString('es-ES'):'Pendiente';
+ const {city,country}=parseCityCountry(p);const entry=combinedCity(city,country);const age=entry?.updatedAt?new Date(entry.updatedAt).toLocaleString('es-ES'):'Pendiente';const tm=cachedCity(city,country);const tmStatus=config().apiKey?(tm?`Ticketmaster conectado ✓ · ${(tm.events||[]).length} eventos`:'Ticketmaster conectado ✓ · pendiente de consulta'):'Ticketmaster no conectado';
  return `<article class="card usp-agenda-property" data-agenda-property="${esc(p.id||p.name)}"><div class="usp-agenda-property-head"><div><h2>${esc(p.name||'Alojamiento')}</h2><span>📍 ${esc([city,country].filter(Boolean).join(', '))}</span></div><button class="btn secondary usp-refresh-city" data-city="${esc(city)}" data-country="${esc(country)}">Actualizar eventos</button></div>
  ${entry?eventCards(entry.events):`<div class="usp-agenda-empty">Agenda todavía no consultada para ${esc(city)}.</div>`}<div class="usp-agenda-meta">Última actualización: ${esc(age)} · ${esc(tmStatus)} · Los eventos pasados se eliminan automáticamente.</div></article>`;
 }

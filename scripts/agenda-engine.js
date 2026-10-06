@@ -149,7 +149,7 @@ function renderAgendaRoute(){
 function agendaPropertyCard(p){
  const {city,country}=parseCityCountry(p);const entry=combinedCity(city,country);const age=entry?.updatedAt?new Date(entry.updatedAt).toLocaleString('es-ES'):'Pendiente';
  return `<article class="card usp-agenda-property" data-agenda-property="${esc(p.id||p.name)}"><div class="usp-agenda-property-head"><div><h2>${esc(p.name||'Alojamiento')}</h2><span>📍 ${esc([city,country].filter(Boolean).join(', '))}</span></div><button class="btn secondary usp-refresh-city" data-city="${esc(city)}" data-country="${esc(country)}">Actualizar eventos</button></div>
- ${entry?eventCards(entry.events):`<div class="usp-agenda-empty">Agenda todavía no consultada para ${esc(city)}.</div>`}<div class="usp-agenda-meta">Última actualización: ${esc(age)} · Los eventos pasados se eliminan automáticamente.</div></article>`;
+ ${entry?eventCards(entry.events):`<div class="usp-agenda-empty">Agenda todavía no consultada para ${esc(city)}.</div>`}<div class="usp-agenda-meta">Última actualización: ${esc(age)} · ${esc(tmStatus)} · Los eventos pasados se eliminan automáticamente.</div></article>`;
 }
 function bindAgendaRoute(){
  $('#uspSaveTicketmaster')?.addEventListener('click',async()=>{
@@ -159,7 +159,12 @@ function bindAgendaRoute(){
  });
  $$('.usp-refresh-city').forEach(b=>b.addEventListener('click',async()=>{
   b.disabled=true;b.textContent='Actualizando…';
-  try{await Promise.allSettled([fetchTicketmaster(b.dataset.city,b.dataset.country,{force:true}),fetchWorldAgenda(b.dataset.city,b.dataset.country,{force:true})]);renderAgendaRoute()}
+  try{
+   const results=await Promise.allSettled([fetchTicketmaster(b.dataset.city,b.dataset.country,{force:true}),fetchWorldAgenda(b.dataset.city,b.dataset.country,{force:true})]);
+   const tm=results[0];
+   if(tm.status==='rejected')alert(`Ticketmaster no respondió correctamente: ${tm.reason?.message||'error desconocido'}`);
+   renderAgendaRoute()
+  }
   catch(e){b.disabled=false;b.textContent='Reintentar';alert(e.message==='NO_API_KEY'?'Conecta primero Ticketmaster.':`No se pudo actualizar Ticketmaster: ${e.message}`)}
  }));
 }

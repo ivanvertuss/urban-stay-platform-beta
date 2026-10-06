@@ -211,7 +211,7 @@ function observe(){
   if(wizard)mo.observe(wizard,{childList:true,subtree:true});
   augmentWizardAgenda();
  };
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{start();setTimeout(renderAgendaRoute,100)});else{start();setTimeout(renderAgendaRoute,100)}
 }
 function weeklyRefresh(){
  const all=cache();

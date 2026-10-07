@@ -182,9 +182,10 @@ function augmentWizardAgenda(){
  const d=readJson('usp-v1-draft',{}),city=(d.city||'').trim(),country=(d.country||'').trim();
  const holder=document.createElement('div');holder.id='uspAgendaLive';holder.className='usp-agenda-live';
  if(!city){holder.innerHTML=`<div class="usp-agenda-live-head"><h4>Agenda automática</h4></div><p>Cuando indiques la ciudad en Datos básicos, Urban Stay preparará automáticamente los eventos de ese destino.</p>`;box.appendChild(holder);return}
- const entry=combinedCity(city,country),cfg=config();
+ const entry=combinedCity(city,country),cfg=config(),manual=Array.isArray(d.manualEvents)?d.manualEvents.filter(isFutureEvent):[];
  holder.innerHTML=`<div class="usp-agenda-live-head"><div><h4>Agenda automática de ${esc(city)}</h4><p>Los eventos se actualizarán por la ciudad de esta propiedad y los caducados se eliminarán solos.</p></div><span class="usp-agenda-badge">AUTO</span></div>
- ${!cfg.apiKey?`<p><b>Ticketmaster pendiente de activar en el módulo Agenda del Dashboard.</b></p>`:entry?.events?.length?`<div class="usp-agenda-mini">${entry.events.slice(0,4).map(e=>`<span><b>${esc(e.name)}</b><em>${esc(formatDate(e.date))}</em></span>`).join('')}</div>`:`<p>La agenda se cargará automáticamente al guardar/publicar la propiedad.</p>`}`;
+ ${!cfg.apiKey?`<p><b>Ticketmaster pendiente de activar en el módulo Agenda del Dashboard.</b></p>`:entry?.events?.length?`<div class="usp-agenda-mini">${entry.events.slice(0,4).map(e=>`<span><b>${esc(e.name)}</b><em>${esc(formatDate(e.date))}</em></span>`).join('')}</div>`:`<p>La agenda se cargará automáticamente al guardar/publicar la propiedad.</p>`}
+ ${manual.length?`<div style="margin-top:12px"><b style="font-size:11px">Añadidos por el propietario</b><div class="usp-agenda-mini">${manual.map(e=>`<span><b>${esc(e.name)}</b><em>${esc(formatDate(e.date))}</em></span>`).join('')}</div></div>`:''}`;
  box.appendChild(holder);
  if(!entry)Promise.allSettled([cfg.apiKey?fetchTicketmaster(city,country):Promise.resolve(),fetchWorldAgenda(city,country)]).then(()=>{holder.remove();augmentWizardAgenda()});
 }

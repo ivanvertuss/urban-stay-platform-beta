@@ -484,6 +484,7 @@ function propertyCard(p){
          <span class="demo-readonly">Ejemplo Urban Stay · Solo lectura</span>
        </div>`
     : `<div class="property-actions" data-property-actions="${p.id}">
+         ${ownerMade?`<button type="button" class="property-state-btn" data-edit-property="${p.id}">✎ Editar propiedad</button>`:''}
          ${ownerMade&&['draft','changes_requested'].includes(p.status)?`<button type="button" class="property-review-btn" data-send-review="${p.id}">🛡 Enviar a revisión</button>`:''}
          ${p.status==='approved'?`<button type="button" class="property-state-btn" data-status-property="${p.id}" data-status="active">✓ Activar</button>`:''}
          ${['active','inactive'].includes(p.status)?`<button type="button" class="property-state-btn ${p.status==='active'?'active':''}" data-status-property="${p.id}" data-status="active">✓ Activa</button><button type="button" class="property-state-btn ${p.status==='inactive'?'active':''}" data-status-property="${p.id}" data-status="inactive">⏸ Inactiva</button>`:''}
@@ -1067,8 +1068,9 @@ $('#newPropertyTop')?.addEventListener('click',openNewPropertyWizard);
  $$('[data-approve]').forEach(b=>b.onclick=e=>{e.stopPropagation();moderationAction(b.dataset.approve,'approved')});
  $$('[data-request-changes]').forEach(b=>b.onclick=e=>{e.stopPropagation();moderationAction(b.dataset.requestChanges,'changes_requested')});
  $$('[data-status-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();setPropertyStatus(b.dataset.statusProperty,b.dataset.status)});
- $$('[data-delete-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();deleteProperty(b.dataset.deleteProperty)});
- $$('[data-property-actions]').forEach(x=>x.onclick=e=>e.stopPropagation());
+ $('[data-delete-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();deleteProperty(b.dataset.deleteProperty)});
+ $('[data-edit-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();const p=allProps().find(y=>String(y.id)===String(b.dataset.editProperty));if(!p?.wizardData){toast('No se pudo abrir la propiedad.');return}state.selectedProperty=p.id;draft=normalizeDraft(JSON.parse(JSON.stringify(p.wizardData)));saveDraft();openWizard()});
+ $('[data-property-actions]').forEach(x=>x.onclick=e=>e.stopPropagation());
 $$('[data-open-property]').forEach(x=>x.onclick=()=>{
   const p=allProps().find(y=>y.id===x.dataset.openProperty);
 

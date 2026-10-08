@@ -9,11 +9,27 @@ const corsHeaders={
 serve(async(req)=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:corsHeaders});
  try{
-  const apiKey=Deno.env.get("OPENAI_API_KEY");
-  if(!apiKey)throw new Error("OPENAI_API_KEY is not configured");
   const body=await req.json();
   const city=String(body?.city||"").trim(),country=String(body?.country||"").trim();
   if(!city)return json({error:"city_required"},400);
+
+  // Ticketmaster is proxied through this Edge Function so the browser never
+  // calls app.ticketmaster.com directly (which can fail because of CORS/network policy).
+  if(body?.provider==="ticketmaster"){
+   const ticketmasterKey=String(body?.apiKey||Deno.env.get("TICKETMASTER_API_KEY")||"").trim();
+   if(!ticketmasterKey)return json({error:"ticketmaster_key_required"},400);
+   const cc=String(body?.countryCode||"").trim().toUpperCase();
+   const params=new URLSearchParams({apikey:ticketmasterKey,city,sort:"date,asc",size:"12",locale:"*"});
+   if(cc)params.set("countryCode",cc);
+   params.set("startDateTime",new Date().toISOString().replace(/\.\d{3}Z$/,"Z"));
+   const tmResponse=await fetch(`https://app.ticketmaster.com/discovery/v2/events.json?${params}`,{headers:{Accept:"application/json"}});
+   const tmResult=await tmResponse.json().catch(()=>({}));
+   if(!tmResponse.ok)return json({error:"ticketmaster_request_failed",detail:tmResult?.fault?.faultstring||tmResult?.message||`HTTP ${tmResponse.status}`},502);
+   return json({city,country,updatedAt:new Date().toISOString(),events:tmResult?._embedded?.events||[]},200);
+  }
+
+  const apiKey=Deno.env.get("OPENAI_API_KEY");
+  if(!apiKey)throw new Error("OPENAI_API_KEY is not configured");
   const today=new Date().toISOString().slice(0,10);
   const prompt=`Find current public events for visitors in ${city}, ${country}. Today is ${today}.
 Prioritize official city/tourism/cultural venue sources and local public events that global ticketing sites often miss: popular festivals and traditions, gastronomy, fairs, culture, family activities, sport and municipal events.

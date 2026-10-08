@@ -871,13 +871,13 @@ function bindWizard(){
    const rows=Array.isArray(state.guestBenefits)?state.guestBenefits:[];
    benefitsPanel.innerHTML=`<article class="card" style="padding:16px;margin-bottom:14px"><div class="section-label">AÑADIR COLABORADOR</div><p style="margin:5px 0 12px">Indica el negocio y la promoción. Urban Stay completará su ficha con IA.</p><div class="form-grid wizard-form"><div class="field"><label>Nombre del negocio</label><input id="propertyBenefitName" placeholder="Ej. Casa Moncho"></div><div class="field"><label>Ciudad</label><input id="propertyBenefitCity" value="${esc(draft.city||'')}" placeholder="Ej. Vigo"></div><div class="field full"><label>Promoción o ventaja</label><input id="propertyBenefitPromo" placeholder="Ej. 10% de descuento para huéspedes"></div></div><div style="display:flex;justify-content:flex-end;margin-top:12px"><button type="button" class="btn primary" id="propertyBenefitCreate">✨ Añadir colaborador</button></div></article><div class="ai-prep-note"><b>🎁 Ventajas para tus huéspedes</b><span>Solo las promociones activas aparecen en la guía.</span></div><div style="display:grid;gap:10px;margin-top:14px">${rows.length?rows.map(x=>`<article class="card" style="padding:14px;opacity:${x.is_active?1:.58}"><div style="display:flex;justify-content:space-between;gap:10px"><div><b>${esc(x.name||'Colaborador')}</b>${x.category?`<small style="display:block;margin-top:3px">${esc(x.category)}</small>`:''}</div><small>${x.is_active?'● Activo':'○ Inactivo'}</small></div>${x.promotion?`<strong style="display:block;margin-top:7px">🎁 ${esc(x.promotion)}</strong>`:''}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="btn secondary" data-benefit-toggle="${x.id}" data-next="${x.is_active?'false':'true'}">${x.is_active?'Desactivar':'Activar'}</button><button type="button" class="btn secondary" data-benefit-edit="${x.id}" data-promo="${esc(x.promotion||'')}">Editar promoción</button><button type="button" class="btn secondary" data-benefit-delete="${x.id}">Eliminar</button></div></article>`).join(''):'<article class="card" style="padding:14px"><b>Aún no hay promociones</b><p style="margin:6px 0 0">Añade el primer colaborador de esta propiedad.</p></article>'}</div>`;
    $('#propertyBenefitCreate')?.addEventListener('click',createPropertyBenefit);
-   $('[data-benefit-toggle]').forEach(b=>b.onclick=()=>togglePropertyBenefit(b.dataset.benefitToggle,b.dataset.next==='true'));
-   $('[data-benefit-edit]').forEach(b=>b.onclick=()=>editPropertyBenefit(b.dataset.benefitEdit,b.dataset.promo||''));
-   $('[data-benefit-delete]').forEach(b=>b.onclick=()=>deletePropertyBenefit(b.dataset.benefitDelete));
+   $$('[data-benefit-toggle]').forEach(b=>b.onclick=()=>togglePropertyBenefit(b.dataset.benefitToggle,b.dataset.next==='true'));
+   $$('[data-benefit-edit]').forEach(b=>b.onclick=()=>editPropertyBenefit(b.dataset.benefitEdit,b.dataset.promo||''));
+   $$('[data-benefit-delete]').forEach(b=>b.onclick=()=>deletePropertyBenefit(b.dataset.benefitDelete));
  }
  const ev=$('#eventsToggle');if(ev)ev.onchange=()=>{draft.events=ev.checked;saveDraft();const wrap=ev.closest('.agenda-switch');const tg=wrap?.querySelector('.toggle');if(tg)tg.classList.toggle('on',ev.checked);const sm=wrap?.querySelector('small');if(sm)sm.textContent=ev.checked?'Activada':'Desactivada';updatePreview()};
   $('#ownerEventAdd')?.addEventListener('click',()=>{const name=$('#ownerEventName')?.value.trim(),date=$('#ownerEventDate')?.value;if(!name||!date){toast('Indica el nombre y la fecha del evento.');return}draft.manualEvents.push({id:'owner-'+Date.now(),name,date,venue:$('#ownerEventVenue')?.value.trim()||'',category:$('#ownerEventCategory')?.value||'Evento',url:$('#ownerEventUrl')?.value.trim()||'',description:$('#ownerEventDescription')?.value.trim()||'',source:'Propietario',active:true});saveDraft();renderWizard();toast('Evento añadido a la agenda')});
-  $('[data-owner-event-delete]').forEach(b=>b.onclick=()=>{draft.manualEvents.splice(Number(b.dataset.ownerEventDelete),1);saveDraft();renderWizard();toast('Evento eliminado')});
+  $$('[data-owner-event-delete]').forEach(b=>b.onclick=()=>{draft.manualEvents.splice(Number(b.dataset.ownerEventDelete),1);saveDraft();renderWizard();toast('Evento eliminado')});
  const logo=$('#logoInput');if(logo)logo.onchange=async e=>{
    const file=e.target.files?.[0],status=$('#photoUploadStatus');
    if(!file)return;
@@ -1068,9 +1068,9 @@ $('#newPropertyTop')?.addEventListener('click',openNewPropertyWizard);
  $$('[data-approve]').forEach(b=>b.onclick=e=>{e.stopPropagation();moderationAction(b.dataset.approve,'approved')});
  $$('[data-request-changes]').forEach(b=>b.onclick=e=>{e.stopPropagation();moderationAction(b.dataset.requestChanges,'changes_requested')});
  $$('[data-status-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();setPropertyStatus(b.dataset.statusProperty,b.dataset.status)});
- $('[data-delete-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();deleteProperty(b.dataset.deleteProperty)});
- $('[data-edit-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();const p=allProps().find(y=>String(y.id)===String(b.dataset.editProperty));if(!p?.wizardData){toast('No se pudo abrir la propiedad.');return}state.selectedProperty=p.id;draft=normalizeDraft(JSON.parse(JSON.stringify(p.wizardData)));saveDraft();openWizard()});
- $('[data-property-actions]').forEach(x=>x.onclick=e=>e.stopPropagation());
+ $$('[data-delete-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();deleteProperty(b.dataset.deleteProperty)});
+ $$('[data-edit-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();const p=allProps().find(y=>String(y.id)===String(b.dataset.editProperty));if(!p?.wizardData){toast('No se pudo abrir la propiedad.');return}state.selectedProperty=p.id;draft=normalizeDraft(JSON.parse(JSON.stringify(p.wizardData)));saveDraft();openWizard()});
+ $$('[data-property-actions]').forEach(x=>x.onclick=e=>e.stopPropagation());
 $$('[data-open-property]').forEach(x=>x.onclick=()=>{
   const p=allProps().find(y=>y.id===x.dataset.openProperty);
 

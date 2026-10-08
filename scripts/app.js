@@ -31,6 +31,7 @@ const state={
  previewOpen:false,
  previewDevice:'mobile',
  guestBenefits:[],
+ urbanBenefits:[],
  admin:new URLSearchParams(location.search).get('admin')==='1'
 };
 const tr=k=>(I18N[state.lang]||I18N.es)[k]||I18N.es[k]||k;
@@ -745,17 +746,32 @@ function livePreviewHtml(){
  return `<div class="live-preview-head"><div><span class="eyebrow">VISTA PREVIA EN VIVO</span><b>${templateName(draft.template)}</b></div><div class="live-preview-actions"><div class="device-switch"><button type="button" data-device="mobile" class="${state.previewDevice==='mobile'?'active':''}">📱</button><button type="button" data-device="desktop" class="${state.previewDevice==='desktop'?'active':''}">💻</button></div><button type="button" id="closeLivePreview" class="live-preview-close" aria-label="Cerrar vista previa">×</button></div></div><div class="preview-stage"><div class="guest-phone ${state.previewDevice==='desktop'?'desktop':''}" id="guestPhone">${guestPreviewMarkup()}</div></div>`;
 }
 function guestBenefitsMarkup(){
- const rows=(Array.isArray(state.guestBenefits)?state.guestBenefits:[]).filter(x=>x.is_active!==false);
+ const mine=(Array.isArray(state.guestBenefits)?state.guestBenefits:[]).filter(x=>x.is_active!==false).map(x=>({...x,__urban:false}));
+ const urban=(Array.isArray(state.urbanBenefits)?state.urbanBenefits:[]).filter(x=>x.is_active!==false).map(x=>({...x,__urban:true}));
+ const rows=[...mine,...urban];
  if(!rows.length)return '';
- return `<div class="guest-section guest-benefits"><h3>✨ Sugerencias y promociones</h3>${rows.map(x=>`<div class="guest-list-item"><b>${esc(x.name||'Colaborador')}</b>${x.category?`<small style="display:block">${esc(x.category)}</small>`:''}${x.promotion?`<span style="display:block;font-weight:800;margin-top:4px">🎁 ${esc(x.promotion)}</span>`:''}</div>`).join('')}</div>`;
+ return `<div class="guest-section guest-benefits"><h3>✨ Sugerencias y promociones</h3>${rows.map(x=>`<div class="guest-list-item"><b>${esc(x.name||'Colaborador')}</b>${x.__urban?`<small style="display:block;font-weight:800">◆ Recomendación Urban Stay</small>`:''}${x.category?`<small style="display:block">${esc(x.category)}</small>`:''}${x.promotion?`<span style="display:block;font-weight:800;margin-top:4px">🎁 ${esc(x.promotion)}</span>`:''}${x.description?`<p>${esc(x.description)}</p>`:''}</div>`).join('')}</div>`;
+}
+function benefitNorm(v){return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function urbanBenefitAppliesPreview(x){
+ const type=String(x.partner_type||'local').toLowerCase(),city=benefitNorm(draft.city),province=benefitNorm(draft.province),region=benefitNorm(draft.region),country=benefitNorm(draft.country);
+ if(type==='global')return true;
+ if(type==='national')return !!country&&benefitNorm(x.country)===country;
+ if(type==='provincial')return !!province&&!!country&&benefitNorm(x.region)===province&&benefitNorm(x.country)===country;
+ if(type==='regional')return !!region&&!!country&&benefitNorm(x.region)===region&&benefitNorm(x.country)===country;
+ return !!city&&!!country&&benefitNorm(x.city)===city&&benefitNorm(x.country)===country;
 }
 async function loadPropertyBenefits(propertyId){
- state.guestBenefits=[];
+ state.guestBenefits=[];state.urbanBenefits=[];
  if(!DB||!propertyId)return;
  try{
-  const {data,error}=await DB.from('property_collaborators').select('*').eq('property_id',propertyId).order('created_at',{ascending:false});
-  if(error)throw error;
-  state.guestBenefits=data||[];
+  const [mine,urban]=await Promise.all([
+   DB.from('property_collaborators').select('*').eq('property_id',propertyId).order('created_at',{ascending:false}),
+   DB.from('urban_stay_partners').select('id,name,category,promotion,description,partner_type,city,region,country,is_active').eq('is_active',true).order('created_at',{ascending:false})
+  ]);
+  if(mine.error)throw mine.error;if(urban.error)throw urban.error;
+  state.guestBenefits=mine.data||[];
+  state.urbanBenefits=(urban.data||[]).filter(urbanBenefitAppliesPreview);
  }catch(e){console.warn('Property promotions:',e)}
 }
 async function loadGuestBenefits(propertyId){

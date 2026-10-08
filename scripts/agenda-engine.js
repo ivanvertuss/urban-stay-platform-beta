@@ -83,14 +83,11 @@ async function fetchTicketmaster(city,country,{force=false}={}){
  if(!force && existing && Date.now()-(existing.updatedAt||0)<TM_REFRESH_MS){
   existing.events=cleanEvents(existing.events||[]);all[key]=existing;setCache(all);return existing;
  }
- const params=new URLSearchParams({apikey:cfg.apiKey,city,sort:'date,asc',size:String(TM_SIZE),locale:'*'});
- if(cc)params.set('countryCode',cc);
- const now=new Date();params.set('startDateTime',now.toISOString().replace(/\.\d{3}Z$/,'Z'));
- const url=`https://app.ticketmaster.com/discovery/v2/events.json?${params}`;
- const res=await fetch(url,{headers:{Accept:'application/json'}});
- if(!res.ok)throw new Error(`Ticketmaster ${res.status}`);
- const json=await res.json();
- const events=cleanEvents((json?._embedded?.events||[]).map(mapTicketmasterEvent));
+ if(!DB)throw new Error('TICKETMASTER_PROXY_UNAVAILABLE');
+ const {data:json,error}=await DB.functions.invoke('agenda-city',{body:{provider:'ticketmaster',city,country,countryCode:cc,apiKey:cfg.apiKey}});
+ if(error)throw new Error(error.message||'Ticketmaster proxy error');
+ if(json?.error)throw new Error(json.detail||json.error);
+ const events=cleanEvents((json?.events||[]).map(mapTicketmasterEvent));
  const entry={city,country,updatedAt:Date.now(),events,source:'Ticketmaster'};
  all[key]=entry;setCache(all);return entry;
 }

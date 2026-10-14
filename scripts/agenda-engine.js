@@ -75,7 +75,6 @@ function mapTicketmasterEvent(e){
 }
 async function fetchTicketmaster(city,country,{force=false}={}){
  const cfg=config();
- if(!cfg.apiKey)throw new Error('NO_API_KEY');
  const cc=countryCode(country);
  const key=cityKey(city,country);
  const all=cache();
@@ -84,7 +83,7 @@ async function fetchTicketmaster(city,country,{force=false}={}){
   existing.events=cleanEvents(existing.events||[]);all[key]=existing;setCache(all);return existing;
  }
  if(!DB)throw new Error('TICKETMASTER_PROXY_UNAVAILABLE');
- const {data:json,error}=await DB.functions.invoke('agenda-city',{body:{provider:'ticketmaster',city,country,countryCode:cc,apiKey:cfg.apiKey}});
+ const {data:json,error}=await DB.functions.invoke('agenda-city',{body:{provider:'ticketmaster',city,country,countryCode:cc}});
  if(error)throw new Error(error.message||'Ticketmaster proxy error');
  if(json?.error)throw new Error(json.detail||json.error);
  const events=cleanEvents((json?.events||[]).map(mapTicketmasterEvent));
@@ -135,16 +134,16 @@ function renderAgendaRoute(){
  const agendaBtn=$('[data-route="agenda"]');
  if(!agendaBtn?.classList.contains('active'))return;
  styleOnce();
- const cfg=config(),props=properties();
+ const cfg=config(),props=properties(),tmEnabled=true;
  content.innerHTML=`<section class="page usp-agenda-page">
  <div class="usp-agenda-hero"><div><span class="section-label">AGENDA DINÁMICA</span><h1>Eventos por ciudad</h1><p>Cada propiedad utiliza su propia ciudad. Urban Stay consulta los próximos eventos, elimina automáticamente los que ya han pasado y renueva la agenda semanalmente.</p></div><span class="usp-agenda-badge">Urban Stay · agenda mundial automática</span></div>
- ${!cfg.apiKey?`<article class="card usp-agenda-setup"><div class="section-label">ACTIVACIÓN ÚNICA</div><h2>Conecta Ticketmaster</h2><p>Introduce una vez tu Consumer Key de Ticketmaster. Se guardará únicamente en este navegador de administración y no se escribe en el repositorio.</p><div class="usp-agenda-keyrow"><label>Ticketmaster Consumer Key<input type="password" id="uspTicketmasterKey" autocomplete="off" placeholder="Pega aquí tu API key"></label><button class="btn primary" id="uspSaveTicketmaster">Guardar y activar</button></div></article>`:''}
+ 
  <div id="uspAgendaProperties">${props.length?props.map(p=>agendaPropertyCard(p)).join(''):`<article class="card usp-agenda-property"><h2>Aún no hay propiedades con ciudad</h2><p>Cuando un propietario dé de alta un alojamiento, su ciudad aparecerá aquí automáticamente.</p></article>`}</div>
  </section>`;
  bindAgendaRoute();
 }
 function agendaPropertyCard(p){
- const {city,country}=parseCityCountry(p);const entry=combinedCity(city,country);const age=entry?.updatedAt?new Date(entry.updatedAt).toLocaleString('es-ES'):'Pendiente';const tm=cachedCity(city,country);const tmStatus=config().apiKey?(tm?`Ticketmaster conectado ✓ · ${(tm.events||[]).length} eventos`:'Ticketmaster conectado ✓ · pendiente de consulta'):'Ticketmaster no conectado';
+ const {city,country}=parseCityCountry(p);const entry=combinedCity(city,country);const age=entry?.updatedAt?new Date(entry.updatedAt).toLocaleString('es-ES'):'Pendiente';const tm=cachedCity(city,country);const tmStatus=tm?`Ticketmaster conectado ✓ · ${(tm.events||[]).length} eventos`:'Ticketmaster conectado ✓ · pendiente de consulta';
  return `<article class="card usp-agenda-property" data-agenda-property="${esc(p.id||p.name)}"><div class="usp-agenda-property-head"><div><h2>${esc(p.name||'Alojamiento')}</h2><span>📍 ${esc([city,country].filter(Boolean).join(', '))}</span></div><button class="btn secondary usp-refresh-city" data-city="${esc(city)}" data-country="${esc(country)}">Actualizar eventos</button></div>
  ${entry?eventCards(entry.events):`<div class="usp-agenda-empty">Agenda todavía no consultada para ${esc(city)}.</div>`}<div class="usp-agenda-meta">Última actualización: ${esc(age)} · ${esc(tmStatus)} · Los eventos pasados se eliminan automáticamente.</div></article>`;
 }
@@ -166,7 +165,6 @@ function bindAgendaRoute(){
  }));
 }
 async function refreshAllCities(force=false){
- if(!config().apiKey)return;
  const unique=new Map();properties().forEach(p=>{const x=parseCityCountry(p);unique.set(cityKey(x.city,x.country),x)});
  for(const x of unique.values()){
   try{await Promise.allSettled([fetchTicketmaster(x.city,x.country,{force}),fetchWorldAgenda(x.city,x.country,{force})])}catch(e){console.warn('Urban Stay Agenda:',x.city,e)}
@@ -179,12 +177,12 @@ function augmentWizardAgenda(){
  const d=readJson('usp-v1-draft',{}),city=(d.city||'').trim(),country=(d.country||'').trim();
  const holder=document.createElement('div');holder.id='uspAgendaLive';holder.className='usp-agenda-live';
  if(!city){holder.innerHTML=`<div class="usp-agenda-live-head"><h4>Agenda automática</h4></div><p>Cuando indiques la ciudad en Datos básicos, Urban Stay preparará automáticamente los eventos de ese destino.</p>`;box.appendChild(holder);return}
- const entry=combinedCity(city,country),cfg=config(),manual=Array.isArray(d.manualEvents)?d.manualEvents.filter(isFutureEvent):[];
+ const entry=combinedCity(city,country),manual=Array.isArray(d.manualEvents)?d.manualEvents.filter(isFutureEvent):[];
  holder.innerHTML=`<div class="usp-agenda-live-head"><div><h4>Agenda automática de ${esc(city)}</h4><p>Los eventos se actualizarán por la ciudad de esta propiedad y los caducados se eliminarán solos.</p></div><span class="usp-agenda-badge">AUTO</span></div>
- ${!cfg.apiKey?`<p><b>Ticketmaster pendiente de activar en el módulo Agenda del Dashboard.</b></p>`:entry?.events?.length?`<div class="usp-agenda-mini">${entry.events.slice(0,4).map(e=>`<span><b>${esc(e.name)}</b><em>${esc(formatDate(e.date))}</em></span>`).join('')}</div>`:`<p>La agenda se cargará automáticamente al guardar/publicar la propiedad.</p>`}
+ ${entry?.events?.length?`<div class="usp-agenda-mini">${entry.events.slice(0,4).map(e=>`<span><b>${esc(e.name)}</b><em>${esc(formatDate(e.date))}</em></span>`).join('')}</div>`:`<p>La agenda se cargará automáticamente al guardar/publicar la propiedad.</p>`}
  ${manual.length?`<div style="margin-top:12px"><b style="font-size:11px">Añadidos por el propietario</b><div class="usp-agenda-mini">${manual.map(e=>`<span><b>${esc(e.name)}</b><em>${esc(formatDate(e.date))}</em></span>`).join('')}</div></div>`:''}`;
  box.appendChild(holder);
- if(!entry)Promise.allSettled([cfg.apiKey?fetchTicketmaster(city,country):Promise.resolve(),fetchWorldAgenda(city,country)]).then(()=>{holder.remove();augmentWizardAgenda()});
+ if(!entry)Promise.allSettled([fetchTicketmaster(city,country),fetchWorldAgenda(city,country)]).then(()=>{holder.remove();augmentWizardAgenda()});
 }
 function observe(){
  document.addEventListener('click',e=>{

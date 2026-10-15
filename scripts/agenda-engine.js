@@ -116,9 +116,18 @@ function formatDate(d){
  const x=new Date(`${d}T12:00:00`);if(Number.isNaN(+x))return d;
  return new Intl.DateTimeFormat('es-ES',{day:'2-digit',month:'short'}).format(x).replace('.','').toUpperCase();
 }
+function displayEvents(events=[]){
+ const sorted=events.filter(isFutureEvent).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+ const tm=sorted.filter(e=>e.source==='Ticketmaster');
+ const publicEvents=sorted.filter(e=>e.source!=='Ticketmaster');
+ if(tm.length&&publicEvents.length){
+  return [...tm.slice(0,3),...publicEvents.slice(0,3)].sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+ }
+ return sorted.slice(0,6);
+}
 function eventCards(events=[]){
  if(!events.length)return `<div class="usp-agenda-empty">No hay próximos eventos verificados para esta ciudad en este momento.</div>`;
- return `<div class="usp-agenda-events">${events.slice(0,6).map(e=>`<a class="usp-agenda-event" href="${esc(e.url||'#')}" ${e.url?'target="_blank" rel="noopener"':''}>
+ return `<div class="usp-agenda-events">${displayEvents(events).map(e=>`<a class="usp-agenda-event" href="${esc(e.url||'#')}" ${e.url?'target="_blank" rel="noopener"':''}>
   <span class="usp-agenda-date">${esc(formatDate(e.date))}</span><div><b>${esc(e.name)}</b><small>${esc([e.venue,e.city].filter(Boolean).join(' · '))}</small><small class="usp-agenda-source">Fuente: ${esc(e.source||'Urban Stay')}</small></div><em>${esc(e.category||'Evento')}</em>
  </a>`).join('')}</div>`;
 }

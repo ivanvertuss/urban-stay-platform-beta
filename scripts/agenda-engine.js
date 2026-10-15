@@ -100,9 +100,17 @@ async function fetchWorldAgenda(city,country,{force=false}={}){
  const entry={city,country,updatedAt:Date.now(),events,source:'Urban Stay AI'};
  all[key]=entry;setAiCache(all);return entry;
 }
+function mergeCityEvents(tmEvents=[],publicEvents=[]){
+ const seen=new Set();
+ return [...tmEvents,...publicEvents].filter(isFutureEvent).filter(e=>{
+  const k=`${e.name}|${e.date}|${e.venue}`.toLowerCase();
+  if(seen.has(k))return false;
+  seen.add(k);return true;
+ }).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+}
 function combinedCity(city,country){
  const tm=cachedCity(city,country),ai=aiCache()[cityKey(city,country)];
- const events=cleanEvents([...(tm?.events||[]),...(ai?.events||[])]);
+ const events=mergeCityEvents(tm?.events||[],ai?.events||[]);
  const updatedAt=Math.max(tm?.updatedAt||0,ai?.updatedAt||0);
  return (tm||ai)?{city,country,updatedAt,events,source:'Urban Stay'}:null;
 }
@@ -125,10 +133,15 @@ function displayEvents(events=[]){
  }
  return sorted.slice(0,6);
 }
+function sourceLabel(source=''){
+ const raw=String(source||'Urban Stay').trim();
+ if(/^https?:\/\//i.test(raw)){try{return new URL(raw).hostname.replace(/^www\./,'')}catch{return 'Fuente oficial'}}
+ return raw.replace(/\s*\([^)]*https?:\/\/[^)]*\)/gi,'').replace(/\s*https?:\/\/\S+/gi,'').trim()||'Fuente oficial';
+}
 function eventCards(events=[]){
  if(!events.length)return `<div class="usp-agenda-empty">No hay próximos eventos verificados para esta ciudad en este momento.</div>`;
  return `<div class="usp-agenda-events">${displayEvents(events).map(e=>`<a class="usp-agenda-event" href="${esc(e.url||'#')}" ${e.url?'target="_blank" rel="noopener"':''}>
-  <span class="usp-agenda-date">${esc(formatDate(e.date))}</span><div><b>${esc(e.name)}</b><small>${esc([e.venue,e.city].filter(Boolean).join(' · '))}</small><small class="usp-agenda-source">Fuente: ${esc(e.source||'Urban Stay')}</small></div><em>${esc(e.category||'Evento')}</em>
+  <span class="usp-agenda-date">${esc(formatDate(e.date))}</span><div><b>${esc(e.name)}</b><small>${esc([e.venue,e.city].filter(Boolean).join(' · '))}</small><small class="usp-agenda-source">Fuente: ${esc(sourceLabel(e.source))}</small></div><em>${esc(e.category||'Evento')}</em>
  </a>`).join('')}</div>`;
 }
 function styleOnce(){
@@ -152,7 +165,7 @@ function renderAgendaRoute(){
  bindAgendaRoute();
 }
 function agendaPropertyCard(p){
- const {city,country}=parseCityCountry(p);const entry=combinedCity(city,country);const age=entry?.updatedAt?new Date(entry.updatedAt).toLocaleString('es-ES'):'Pendiente';const tm=cachedCity(city,country);const tmStatus=tm?`Ticketmaster conectado ✓ · ${(tm.events||[]).length} eventos`:'Ticketmaster conectado ✓ · pendiente de consulta';
+ const {city,country}=parseCityCountry(p);const entry=combinedCity(city,country);const age=entry?.updatedAt?new Date(entry.updatedAt).toLocaleString('es-ES'):'Pendiente';const tm=cachedCity(city,country);const tmStatus=tm?`Ticketmaster: ${(tm.events||[]).length} eventos recuperados`:'Ticketmaster: pendiente de consulta';
  return `<article class="card usp-agenda-property" data-agenda-property="${esc(p.id||p.name)}"><div class="usp-agenda-property-head"><div><h2>${esc(p.name||'Alojamiento')}</h2><span>📍 ${esc([city,country].filter(Boolean).join(', '))}</span></div><button class="btn secondary usp-refresh-city" data-city="${esc(city)}" data-country="${esc(country)}">Actualizar eventos</button></div>
  ${entry?eventCards(entry.events):`<div class="usp-agenda-empty">Agenda todavía no consultada para ${esc(city)}.</div>`}<div class="usp-agenda-meta">Última actualización: ${esc(age)} · ${esc(tmStatus)} · Los eventos pasados se eliminan automáticamente.</div></article>`;
 }

@@ -108,6 +108,22 @@ function mergeCityEvents(tmEvents=[],publicEvents=[]){
   seen.add(k);return true;
  }).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
 }
+// Shared city agenda for the property editor and guest preview.
+const previewLoads=new Set();
+function previewEvents(city,country){
+ if(!city)return [];
+ const key=cityKey(city,country),entry=combinedCity(city,country);
+ const tm=cachedCity(city,country),ai=aiCache()[key];
+ const stale=!tm||Date.now()-(tm.updatedAt||0)>=TM_REFRESH_MS||!ai||Date.now()-(ai.updatedAt||0)>=AI_REFRESH_MS;
+ if(stale&&!previewLoads.has(key)){
+  previewLoads.add(key);
+  Promise.allSettled([fetchTicketmaster(city,country),fetchWorldAgenda(city,country)]).then(()=>{
+   previewLoads.delete(key);
+   window.dispatchEvent(new CustomEvent('usp-agenda-updated',{detail:{city,country}}));
+  });
+ }
+ return displayEvents(entry?.events||[]);
+}
 function combinedCity(city,country){
  const tm=cachedCity(city,country),ai=aiCache()[cityKey(city,country)];
  const events=mergeCityEvents(tm?.events||[],ai?.events||[]);
@@ -242,5 +258,5 @@ function weeklyRefresh(){
 
 styleOnce();observe();
 setTimeout(weeklyRefresh,1200);
-window.URBAN_STAY_AGENDA={refreshAll:()=>refreshAllCities(true),clearTicketmaster:()=>{localStorage.removeItem(TM_CONFIG_KEY);localStorage.removeItem(TM_CACHE_KEY);renderAgendaRoute()}};
+window.URBAN_STAY_AGENDA={getCityEvents:previewEvents,refreshAll:()=>refreshAllCities(true),clearTicketmaster:()=>{localStorage.removeItem(TM_CONFIG_KEY);localStorage.removeItem(TM_CACHE_KEY);renderAgendaRoute()}};
 })();

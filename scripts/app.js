@@ -804,6 +804,19 @@ async function createPropertyBenefit(){
 async function togglePropertyBenefit(id,next){const {error}=await DB.from('property_collaborators').update({is_active:next,updated_at:new Date().toISOString()}).eq('id',id);if(error)alert('No se pudo actualizar.');else await refreshPropertyBenefits()}
 async function editPropertyBenefit(id,current){const promotion=prompt('Promoción o ventaja para los huéspedes:',current||'');if(promotion===null)return;const {error}=await DB.from('property_collaborators').update({promotion:promotion.trim()||null,updated_at:new Date().toISOString()}).eq('id',id);if(error)alert('No se pudo actualizar la promoción.');else await refreshPropertyBenefits()}
 async function deletePropertyBenefit(id){if(!confirm('¿Eliminar este colaborador?'))return;const {error}=await DB.from('property_collaborators').delete().eq('id',id);if(error)alert('No se pudo eliminar.');else await refreshPropertyBenefits()}
+function guestAgendaMarkup(){
+ if(!draft.events)return '';
+ const city=String(draft.city||'').trim(),country=String(draft.country||'').trim();
+ const automatic=window.URBAN_STAY_AGENDA?.getCityEvents?.(city,country)||[];
+ const manual=Array.isArray(draft.manualEvents)?draft.manualEvents.filter(e=>e&&e.active!==false&&(!e.date||new Date(String(e.date)+'T23:59:59')>=new Date())):[];
+ const seen=new Set();
+ const items=[...manual,...automatic].filter(e=>{
+  const key=[e.name,e.date,e.venue].map(v=>String(v||'').trim().toLowerCase()).join('|');
+  if(seen.has(key))return false;seen.add(key);return true;
+ }).sort((a,b)=>String(a.date||'9999').localeCompare(String(b.date||'9999'))).slice(0,10);
+ const cards=items.map(e=>`<div class="guest-list-item"><b>${esc(e.name||'Evento')}</b><small style="display:block">${esc(e.date||'')}${e.venue?' · '+esc(e.venue):''}</small>${e.source?`<small style="display:block">${esc(e.source==='Ticketmaster'?'Ticketmaster':e.source==='Propietario'?'Propietario':'Agenda local')}</small>`:''}${e.url?`<a href="${esc(e.url)}" target="_blank" rel="noopener">Más información →</a>`:''}</div>`).join('');
+ return `<div class="guest-section"><h3>Agenda</h3><p>${esc(draft.eventNotes||'Próximos eventos de la ciudad.')}</p><div class="guest-event-list">${cards||'<p>Consultando próximos eventos de la ciudad…</p>'}</div></div>`;
+}
 function guestPreviewMarkup(){
  const cover=draft.photos[draft.coverIndex]||draft.photos[0]||'';
  const parking=Object.entries((draft&&draft.parking)||{}).filter(([,v])=>v&&v.on);
@@ -817,7 +830,7 @@ function guestPreviewMarkup(){
  <div class="guest-section"><h3>Aparcamiento</h3>${parking.length?parking.map(([k,v])=>`<div class="guest-parking"><b>${parkingLabel(k)}</b><p>${esc(v.info||'Añade información para el huésped')}</p></div>`).join(''):'<p>Este apartado no se mostrará hasta que actives una opción.</p>'}</div>
  ${draft.restaurants.trim()?`<div class="guest-section"><h3>Restaurantes</h3>${draft.restaurants.split('\n').filter(Boolean).slice(0,5).map(x=>`<div class="guest-list-item">${esc(x)}</div>`).join('')}</div>`:''}
  ${guestBenefitsMarkup()}
- ${draft.events?`<div class="guest-section"><h3>Agenda</h3><p>${esc(draft.eventNotes||'Próximos eventos de la ciudad.')}</p>${Array.isArray(draft.manualEvents)&&draft.manualEvents.filter(e=>e&&e.active!==false).length?`<div class="guest-event-list">${draft.manualEvents.filter(e=>e&&e.active!==false).map(e=>`<div class="guest-list-item"><b>${esc(e.name||'Evento')}</b><small style="display:block">${esc(e.date||'')}${e.venue?' · '+esc(e.venue):''}</small>${e.category?`<span style="display:block">${esc(e.category)}</span>`:''}${e.description?`<p>${esc(e.description)}</p>`:''}${e.url?`<a href="${esc(e.url)}" target="_blank" rel="noopener">Más información →</a>`:''}</div>`).join('')}</div>`:''}</div>`:''}
+ ${guestAgendaMarkup()}
  </div>`;
 }
 function amenityLabel(k){return ({tvBedrooms:'TV habitaciones',bedLinen:'Ropa de cama',towels:'Toallas',smartTv:'Smart TV',lift:'Ascensor',fridge:'Nevera',freezer:'Congelador',oven:'Horno',microwave:'Microondas',dishwasher:'Lavavajillas',washingMachine:'Lavadora',coffeeMaker:'Cafetera',toaster:'Tostadora',sandwichMaker:'Sandwichera',kettle:'Hervidor',kitchenware:'Menaje',dishes:'Vajilla',cutlery:'Cubiertos',potsPans:'Ollas',wineGlasses:'Copas',hairDryer:'Secador',toiletries:'Gel/champú',heating:'Calefacción',airConditioning:'Aire acondicionado',crib:'Cuna',highChair:'Trona',pets:'Mascotas'})[k]||k}
@@ -1232,5 +1245,6 @@ initProfileMenu();
 render();
 }
 
+window.addEventListener('usp-agenda-updated',()=>{if(document.querySelector('#guestPhone'))updatePreview()});
 document.addEventListener('DOMContentLoaded',boot);
 })();

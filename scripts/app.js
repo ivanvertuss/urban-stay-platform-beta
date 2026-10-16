@@ -1092,7 +1092,7 @@ if(usedSlugs.has(slug)){
 async function managePublicPage(id){
  const p=allProps().find(x=>String(x.id)===String(id));if(!p)return;
  if(!DB){alert('La publicación requiere conexión con Supabase.');return}
- const slugBase=String(p.wizardData?.slug||p.name||'alojamiento').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'alojamiento';
+ const slugBase=String(p.wizardData?.slug||p.name||'alojamiento').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'alojamiento';
  const slug=slugBase+'-'+String(id).slice(0,8).toLowerCase();
  const {data:existing,error:readError}=await DB.from('property_publications').select('slug,is_published').eq('property_id',id).maybeSingle();
  if(readError){alert('La publicación segura todavía no está activada en Supabase. No se ha publicado nada.');return}

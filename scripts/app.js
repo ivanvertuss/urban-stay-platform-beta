@@ -486,6 +486,7 @@ function propertyCard(p){
        </div>`
     : `<div class="property-actions" data-property-actions="${p.id}">
          ${ownerMade?`<button type="button" class="property-state-btn" data-edit-property="${p.id}">✎ Editar propiedad</button>`:''}
+         ${ownerMade&&['active','approved'].includes(p.status)?`<button type="button" class="property-state-btn" data-publication-property="${p.id}">🌐 Página pública</button>`:''}
          ${ownerMade&&['draft','changes_requested'].includes(p.status)?`<button type="button" class="property-review-btn" data-send-review="${p.id}">🛡 Enviar a revisión</button>`:''}
          ${p.status==='approved'?`<button type="button" class="property-state-btn" data-status-property="${p.id}" data-status="active">✓ Activar</button>`:''}
          ${['active','inactive'].includes(p.status)?`<button type="button" class="property-state-btn ${p.status==='active'?'active':''}" data-status-property="${p.id}" data-status="active">✓ Activa</button><button type="button" class="property-state-btn ${p.status==='inactive'?'active':''}" data-status-property="${p.id}" data-status="inactive">⏸ Inactiva</button>`:''}
@@ -1088,12 +1089,34 @@ if(usedSlugs.has(slug)){
   },250);
 }
 
+async function managePublicPage(id){
+ const p=allProps().find(x=>String(x.id)===String(id));if(!p)return;
+ if(!DB){alert('La publicación requiere conexión con Supabase.');return}
+ const slugBase=String(p.wizardData?.slug||p.name||'alojamiento').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'alojamiento';
+ const slug=slugBase+'-'+String(id).slice(0,8).toLowerCase();
+ const {data:existing,error:readError}=await DB.from('property_publications').select('slug,is_published').eq('property_id',id).maybeSingle();
+ if(readError){alert('La publicación segura todavía no está activada en Supabase. No se ha publicado nada.');return}
+ if(existing?.is_published){
+  const url=new URL('alojamiento.html?p='+encodeURIComponent(existing.slug),location.href).href;
+  const action=prompt('Página publicada. Copia este enlace o escribe DESACTIVAR para retirarla:',url);
+  if(action==='DESACTIVAR'){const {error}=await DB.from('property_publications').update({is_published:false}).eq('property_id',id);alert(error?'No se pudo desactivar.':'Página desactivada.')}
+  return;
+ }
+ if(!confirm('¿Publicar una página para huéspedes? Solo se compartirán datos públicos del alojamiento. No se mostrarán contraseñas ni instrucciones de acceso.'))return;
+ const {data:auth}=await DB.auth.getUser();if(!auth?.user){alert('Inicia sesión para publicar.');return}
+ const {error}=await DB.from('property_publications').upsert({property_id:id,owner_id:auth.user.id,slug:existing?.slug||slug,is_published:true,updated_at:new Date().toISOString()},{onConflict:'property_id'});
+ if(error){alert('No se ha publicado. Comprueba que la propiedad esté aprobada y que la publicación segura esté activada.');return}
+ const url=new URL('alojamiento.html?p='+encodeURIComponent(existing?.slug||slug),location.href).href;
+ alert('Publicación solicitada. Comprueba la página antes de compartir el enlace.');
+ window.open(url,'_blank','noopener');
+}
 function bindPage(){
  $$('[data-route]').forEach(b=>b.onclick=()=>nav(b.dataset.route));
 $('#newProperty')?.addEventListener('click',openNewPropertyWizard);
 $('#newPropertyTop')?.addEventListener('click',openNewPropertyWizard);
  $('#openModeration')?.addEventListener('click',()=>nav('moderation'));
- $$('[data-send-review]').forEach(b=>b.onclick=e=>{e.stopPropagation();sendForReview(b.dataset.sendReview)});
+ $('[data-publication-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();managePublicPage(b.dataset.publicationProperty)});
+ $('[data-send-review]').forEach(b=>b.onclick=e=>{e.stopPropagation();sendForReview(b.dataset.sendReview)});
  $$('[data-approve]').forEach(b=>b.onclick=e=>{e.stopPropagation();moderationAction(b.dataset.approve,'approved')});
  $$('[data-request-changes]').forEach(b=>b.onclick=e=>{e.stopPropagation();moderationAction(b.dataset.requestChanges,'changes_requested')});
  $$('[data-status-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();setPropertyStatus(b.dataset.statusProperty,b.dataset.status)});

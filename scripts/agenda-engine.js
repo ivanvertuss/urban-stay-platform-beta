@@ -217,7 +217,7 @@ function augmentWizardAgenda(){
  if(!city){holder.innerHTML=`<div class="usp-agenda-live-head"><h4>Agenda automática</h4></div><p>Cuando indiques la ciudad en Datos básicos, Urban Stay preparará automáticamente los eventos de ese destino.</p>`;box.appendChild(holder);return}
  const entry=combinedCity(city,country),manual=Array.isArray(d.manualEvents)?d.manualEvents.filter(isFutureEvent):[];
  holder.innerHTML=`<div class="usp-agenda-live-head"><div><h4>Agenda automática de ${esc(city)}</h4><p>Los eventos se actualizarán por la ciudad de esta propiedad y los caducados se eliminarán solos.</p></div><span class="usp-agenda-badge">AUTO</span></div>
- ${entry?.events?.length?`<div class="usp-agenda-mini">${entry.events.slice(0,4).map(e=>`<span><b>${esc(e.name)}</b><em>${esc(formatDate(e.date))}</em></span>`).join('')}</div>`:`<p>La agenda se cargará automáticamente al guardar/publicar la propiedad.</p>`}
+ ${entry?.events?.length?`<div class="usp-agenda-mini">${displayEvents(entry.events).map(e=>`<span><b>${esc(e.name)}</b><em>${esc(formatDate(e.date))}</em></span>`).join('')}</div>`:`<p>La agenda se cargará automáticamente al guardar/publicar la propiedad.</p>`}
  ${manual.length?`<div style="margin-top:12px"><b style="font-size:11px">Añadidos por el propietario</b><div class="usp-agenda-mini">${manual.map(e=>`<span><b>${esc(e.name)}</b><em>${esc(formatDate(e.date))}</em></span>`).join('')}</div></div>`:''}`;
  box.appendChild(holder);
  if(!entry)Promise.allSettled([fetchTicketmaster(city,country),fetchWorldAgenda(city,country)]).then(()=>{holder.remove();augmentWizardAgenda()});

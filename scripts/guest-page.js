@@ -8,7 +8,7 @@ if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||!cfg||!window.supabase){el.innerHTM
 const db=window.supabase.createClient(cfg.url,cfg.publishableKey);
 function render(p){
  const pics=Array.isArray(p.photos)?p.photos:[],cover=pics[p.coverIndex||0]||pics[0]||'';
- const coverCss=typeof cover==='string'&&/^https:\/\//i.test(cover)?'background-image:linear-gradient(#102c3d99,#102c3d99),url('+JSON.stringify(cover)+')':'';
+ const coverCss=typeof cover==='string'&&(/^(https:\/\/|data:image\/(?:jpeg|png|webp|gif);base64,)/i.test(cover))?'background-image:linear-gradient(#102c3d99,#102c3d99),url('+JSON.stringify(cover)+')':'';
  const amenities=Object.entries(p.amenities||{}).filter(([,v])=>v===true).map(([k])=>'<span class="chip">'+safe(k.replace(/([A-Z])/g,' $1'))+'</span>').join('');
  const manual=(Array.isArray(p.manualEvents)?p.manualEvents:[]).filter(x=>x&&x.active!==false&&(!x.date||new Date(x.date+'T23:59:59')>=new Date()));
  el.innerHTML='<section class="hero" id="guestHero"><p>'+safe(p.city||'')+'</p><h1>'+safe(p.name||'Urban Stay')+'</h1><p>Tu alojamiento, tu ciudad, tu experiencia</p></section>'+

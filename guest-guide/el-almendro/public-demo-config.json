@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "property": {
+    "slug": "el-almendro",
+    "name": "El Almendro",
+    "city": "Vigo",
+    "region": "Galicia",
+    "country": "España",
+    "demo": true
+  },
+  "publicLinks": {
+    "cityAgenda": "https://www.turismodevigo.org/es/agenda",
+    "ticketmaster": "https://www.ticketmaster.es/"
+  },
+  "modules": {
+    "agenda": {
+      "sources": [
+        "city-official",
+        "ticketmaster",
+        "owner"
+      ],
+      "status": "pending-public-api"
+    },
+    "collaborators": {
+      "scopes": [
+        "property",
+        "city",
+        "province",
+        "region",
+        "national",
+        "global"
+      ],
+      "status": "pending-public-api"
+    },
+    "promotions": {
+      "requireActive": true,
+      "requireValidDates": true,
+      "status": "pending-public-api"
+    }
+  },
+  "security": {
+    "publishedOnly": true,
+    "propertyScoped": true,
+    "noAdminAccess": true,
+    "noServiceRoleKey": true
+  }
+}

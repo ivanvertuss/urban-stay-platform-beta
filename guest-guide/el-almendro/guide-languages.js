@@ -21,6 +21,17 @@ function apply(lang){
  select.setAttribute("aria-label",dict[lang]?.[placeholder]||placeholder);
  select.value=lang;
 }
-select.addEventListener("change",()=>apply(select.value));
-apply("es");
+const supported=["es","en","fr","pt","de"];
+let initial="es";
+try{
+ const saved=window.localStorage.getItem("urbanstayguide:language");
+ const browser=(navigator.language||"es").split("-")[0].toLowerCase();
+ initial=supported.includes(saved)?saved:(supported.includes(browser)?browser:"es");
+}catch(_){initial="es";}
+select.addEventListener("change",()=>{
+ apply(select.value);
+ try{window.localStorage.setItem("urbanstayguide:language",select.value)}catch(_){}
+ window.dispatchEvent(new CustomEvent("urbanstayguide:languagechange",{detail:{language:select.value}}));
+});
+apply(initial);
 })();

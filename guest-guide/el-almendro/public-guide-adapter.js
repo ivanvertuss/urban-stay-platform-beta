@@ -33,7 +33,7 @@ function render(section,items){
  const container=host.querySelector("[data-public-items]")||document.createElement("div");
  container.setAttribute("data-public-items","");
  container.className="preview-grid";
- container.innerHTML=items.map(item=>'<article class="guide-panel"><h3>'+esc(item.title)+'</h3><p>'+esc(item.description||"")+'</p>'+(item.url&&/^https:\/\//i.test(item.url)?'<a href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer">Más información ↗</a>':"")+'</article>').join("");
+ container.innerHTML=items.map(item=>'<article class="guide-panel"><h3>'+esc(item.title)+'</h3><p>'+esc(item.description||"")+'</p>'+(item.url&&/^https:\/\//i.test(item.url)?'<a href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer" data-more-link>'+esc(msg("more"))+'</a>':"")+'</article>').join("");
  host.append(container);
 }
 async function load(){

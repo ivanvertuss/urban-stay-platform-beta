@@ -1,4 +1,4 @@
-// Proposed Edge Function: guest-guide-public (NOT DEPLOYED).
+// Guest guide public-feed candidate. Keep JWT verification enabled until audited.
 // Requires server-only SUPABASE_SERVICE_ROLE_KEY; never expose it to browser.
 // Publication and approval are checked on every request.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -29,17 +29,20 @@ Deno.serve(async req=>{
  const {data:property,error:propertyError}=await db.from("properties").select("id,city,status,review_status").eq("id",pub.property_id).maybeSingle();
  if(propertyError)return respond({error:"Service unavailable"},503);
  if(!property||norm(property.city)!=="vigo"||property.status!=="published"||property.review_status!=="approved")return respond({error:"Not found"},404);
- const [events,collaborators,partners]=await Promise.all([
-  db.from("events").select("title,description,starts_at,ends_at,source_url,city").eq("property_id",property.id).gte("starts_at",new Date().toISOString()).order("starts_at",{ascending:true}).limit(30),
-  db.from("property_collaborators").select("name,description,promotion,website,is_active,city").eq("property_id",property.id).eq("is_active",true).limit(30),
-  db.from("urban_stay_partners").select("name,description,promotion,website,is_active,partner_type,city,region,country,starts_at,ends_at").eq("is_active",true).limit(100)
+ const [approvals,events,collaborators,partners]=await Promise.all([
+  db.from("guest_guide_item_publications").select("item_type,item_id").eq("property_id",property.id).eq("approved_for_guests",true).limit(500),
+  db.from("events").select("id,title,description,starts_at,ends_at,source_url,city").eq("property_id",property.id).gte("starts_at",new Date().toISOString()).order("starts_at",{ascending:true}).limit(30),
+  db.from("property_collaborators").select("id,name,description,promotion,website,is_active,city").eq("property_id",property.id).eq("is_active",true).limit(30),
+  db.from("urban_stay_partners").select("id,name,description,promotion,website,is_active,partner_type,city,region,country,starts_at,ends_at").eq("is_active",true).limit(100)
  ]);
- if(events.error||collaborators.error||partners.error)return respond({error:"Service unavailable"},503);
+ if(approvals.error||events.error||collaborators.error||partners.error)return respond({error:"Service unavailable"},503);
+ const allowed=new Set((approvals.data||[]).map(x=>x.item_type+":"+x.item_id));
+ const isApproved=(type:string,id:string)=>allowed.has(type+":"+id);
  const now=Date.now();
- const agenda=(events.data||[]).filter(x=>!x.city||norm(x.city)==="vigo").map(x=>({title:x.title,description:x.description,url:validUrl(x.source_url),published:true,active:true,expiresAt:x.ends_at||null}));
- const own=(collaborators.data||[]).filter(x=>norm(x.city)==="vigo").map(x=>({title:x.name,description:x.description,url:validUrl(x.website),published:true,active:true}));
- const activePartners=(partners.data||[]).filter(x=>applicable(x)&&(!x.starts_at||Date.parse(x.starts_at)<=now)&&(!x.ends_at||Date.parse(x.ends_at)>=now));
+ const agenda=(events.data||[]).filter(x=>isApproved("event",x.id)&&(!x.city||norm(x.city)==="vigo")).map(x=>({title:x.title,description:x.description,url:validUrl(x.source_url),published:true,active:true,expiresAt:x.ends_at||null}));
+ const own=(collaborators.data||[]).filter(x=>isApproved("property_collaborator",x.id)&&norm(x.city)==="vigo")).map(x=>({title:x.name,description:x.description,url:validUrl(x.website),published:true,active:true}));
+ const activePartners=(partners.data||[]).filter(x=>isApproved("urban_stay_partner",x.id)&&applicable(x)&&(!x.starts_at||Date.parse(x.starts_at)<=now)&&(!x.ends_at||Date.parse(x.ends_at)>=now));
  const commercial=activePartners.map(x=>({title:x.name,description:x.description,url:validUrl(x.website),published:true,active:true,expiresAt:x.ends_at||null}));
- const promotions=[...(collaborators.data||[]).filter(x=>norm(x.city)==="vigo"&&x.promotion).map(x=>({title:x.name,description:x.promotion,published:true,active:true})),...activePartners.filter(x=>x.promotion).map(x=>({title:x.name,description:x.promotion,published:true,active:true,expiresAt:x.ends_at||null}))];
+ const promotions=[...(collaborators.data||[]).filter(x=>isApproved("property_collaborator",x.id)&&x.is_active&&norm(x.city)==="vigo"&&x.promotion).map(x=>({title:x.name,description:x.promotion,published:true,active:true})),...activePartners.filter(x=>x.promotion).map(x=>({title:x.name,description:x.promotion,published:true,active:true,expiresAt:x.ends_at||null}))];
  return respond({property:{slug:"el-almendro",city:"Vigo"},agenda,collaborators:[...own,...commercial],promotions});
 });

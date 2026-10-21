@@ -36,6 +36,8 @@ Deno.serve(async req=>{
   db.from("urban_stay_partners").select("id,name,description,promotion,website,is_active,partner_type,city,region,country,starts_at,ends_at").eq("is_active",true).limit(100)
  ]);
  if(approvals.error||events.error||collaborators.error||partners.error)return respond({error:"Service unavailable"},503);
+ // No explicit guest approvals means no public items, regardless of active records.
+ if(!approvals.data?.length)return respond({property:{slug:"el-almendro",city:"Vigo"},agenda:[],collaborators:[],promotions:[]});
  const allowed=new Set((approvals.data||[]).map(x=>x.item_type+":"+x.item_id));
  const isApproved=(type:string,id:string)=>allowed.has(type+":"+id);
  const now=Date.now();

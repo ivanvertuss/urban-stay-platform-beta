@@ -7,13 +7,25 @@ const ROOT=document.documentElement;
 const slug=ROOT.dataset.propertySlug||"el-almendro";
 const endpoint=ROOT.dataset.publicApi||"";
 const ids={agenda:"eventos",collaborators:"colaboradores",promotions:"promociones"};
+const messages={
+ es:{demo:"Vista de demostración: conexión con datos publicados pendiente.",loaded:"Contenidos publicados para Vigo.",empty:"Sin contenidos publicados para esta propiedad.",error:"No se han podido cargar los contenidos públicos. Consulta las fuentes oficiales o inténtalo más tarde.",more:"Más información ↗"},
+ en:{demo:"Demo: connection to published data pending.",loaded:"Published content for Vigo.",empty:"No published content for this property.",error:"Public content is currently unavailable. Check official sources or try again later.",more:"More information ↗"},
+ fr:{demo:"Démo : connexion aux données publiées en attente.",loaded:"Contenus publiés pour Vigo.",empty:"Aucun contenu publié pour ce logement.",error:"Le contenu public est indisponible. Consultez les sources officielles ou réessayez plus tard.",more:"Plus d'informations ↗"},
+ pt:{demo:"Demonstração: ligação aos dados publicados pendente.",loaded:"Conteúdos publicados para Vigo.",empty:"Sem conteúdos publicados para este alojamento.",error:"Os conteúdos públicos estão indisponíveis. Consulte as fontes oficiais ou tente novamente.",more:"Mais informações ↗"},
+ de:{demo:"Demo: Verbindung zu veröffentlichten Daten ausstehend.",loaded:"Veröffentlichte Inhalte für Vigo.",empty:"Keine veröffentlichten Inhalte für diese Unterkunft.",error:"Öffentliche Inhalte sind derzeit nicht verfügbar. Bitte offizielle Quellen prüfen oder später erneut versuchen.",more:"Mehr erfahren ↗"}
+};
+const msg=key=>(messages[ROOT.lang]||messages.es)[key];
+const statuses=new Map();
+function refreshLanguage(){for(const [section,key] of statuses)setStatus(section,key);for(const node of document.querySelectorAll("[data-more-link]"))node.textContent=msg("more")}
+document.getElementById("guide-language")?.addEventListener("change",()=>queueMicrotask(refreshLanguage));
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function setStatus(section,text){
+function setStatus(section,key){
+ statuses.set(section,key);
  const host=document.getElementById(section);
  if(!host)return;
  let node=host.querySelector("[data-live-status]");
  if(!node){node=document.createElement("p");node.setAttribute("data-live-status","");host.append(node)}
- node.textContent=text;
+ node.textContent=msg(key);
 }
 function render(section,items){
  const host=document.getElementById(section);
@@ -25,7 +37,7 @@ function render(section,items){
  host.append(container);
 }
 async function load(){
- if(!endpoint){Object.values(ids).forEach(id=>setStatus(id,"Vista de demostración: conexión con datos publicados pendiente."));return}
+ if(!endpoint){Object.values(ids).forEach(id=>setStatus(id,"demo"));return}
  if(!/^https:\/\//i.test(endpoint)){return}
  try{
   const u=new URL(endpoint);
@@ -39,9 +51,10 @@ async function load(){
    if(!Array.isArray(items))continue;
    const approved=items.filter(x=>x&&x.published===true&&x.active===true&&(!x.expiresAt||new Date(x.expiresAt).getTime()>=Date.now()));
    render(id,approved);
-   setStatus(id,approved.length?"Contenidos publicados para Vigo.":"Sin contenidos publicados para esta propiedad.");
+   refreshLanguage();
+   setStatus(id,approved.length?"loaded":"empty");
   }
- }catch(err){Object.values(ids).forEach(id=>setStatus(id,"No se han podido cargar los contenidos públicos. Consulta las fuentes oficiales o inténtalo más tarde."));console.warn("Guest public feed unavailable:",err.message)}
+ }catch(err){Object.values(ids).forEach(id=>setStatus(id,"error"));console.warn("Guest public feed unavailable:",err.message)}
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();

@@ -20,14 +20,22 @@ Deno.serve(async req=>{
  if(req.method!=="GET")return respond({error:"Method not allowed"},405);
  const u=new URL(req.url);
  if(u.searchParams.get("property")!=="el-almendro")return respond({error:"Not found"},404);
+ const traceId=crypto.randomUUID();
+ const fail=(stage:string,err?:{code?:string;status?:number})=>{
+  // Only stage, HTTP status and machine code: never log credentials, headers, SQL or row contents.
+  const status=typeof err?.status==="number"?err.status:null;
+  const code=typeof err?.code==="string"&&/^[A-Za-z0-9_]{1,40}$/.test(err.code)?err.code:null;
+  console.error(JSON.stringify({component:"guest-guide-public",traceId,stage,status,code}));
+  return respond({error:"Service unavailable",traceId},503);
+ };
  const url=Deno.env.get("SUPABASE_URL"),key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
- if(!url||!key)return respond({error:"Service unavailable"},503);
+ if(!url||!key)return fail("missing_server_configuration");
  const db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
  const {data:pub,error:pubError}=await db.from("property_publications").select("property_id,slug,is_published").eq("slug","el-almendro-509ab578").maybeSingle();
- if(pubError)return respond({error:"Service unavailable"},503);
+ if(pubError)return fail("property_publications",pubError);
  if(!pub?.is_published)return respond({error:"Not found"},404);
  const {data:property,error:propertyError}=await db.from("properties").select("id,city,status,review_status").eq("id",pub.property_id).maybeSingle();
- if(propertyError)return respond({error:"Service unavailable"},503);
+ if(propertyError)return fail("properties",propertyError);
  if(!property||norm(property.city)!=="vigo"||property.status!=="published"||property.review_status!=="approved")return respond({error:"Not found"},404);
  const [approvals,events,collaborators,partners]=await Promise.all([
   db.from("guest_guide_item_publications").select("item_type,item_id").eq("property_id",property.id).eq("approved_for_guests",true).limit(500),
@@ -35,7 +43,10 @@ Deno.serve(async req=>{
   db.from("property_collaborators").select("id,name,description,promotion,website,is_active,city").eq("property_id",property.id).eq("is_active",true).limit(30),
   db.from("urban_stay_partners").select("id,name,description,promotion,website,is_active,partner_type,city,region,country,starts_at,ends_at").eq("is_active",true).limit(100)
  ]);
- if(approvals.error||events.error||collaborators.error||partners.error)return respond({error:"Service unavailable"},503);
+ if(approvals.error)return fail("guest_guide_item_publications",approvals.error);
+ if(events.error)return fail("events",events.error);
+ if(collaborators.error)return fail("property_collaborators",collaborators.error);
+ if(partners.error)return fail("urban_stay_partners",partners.error);
  // No explicit guest approvals means no public items, regardless of active records.
  if(!approvals.data?.length)return respond({property:{slug:"el-almendro",city:"Vigo"},agenda:[],collaborators:[],promotions:[]});
  const allowed=new Set((approvals.data||[]).map(x=>x.item_type+":"+x.item_id));

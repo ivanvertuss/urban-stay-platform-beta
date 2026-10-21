@@ -1,5 +1,5 @@
 /* Urban Stay Guide: language selector for the El Almendro design preview.
-   Language choice is session-local; no visitor data leaves the device. */
+   Language choice is stored locally on this device; no visitor data leaves the device. */
 (()=>{"use strict";
 const dict={
 en:{"Entrar en la guía":"Enter the guide","Inicio":"Home","El alojamiento":"The apartment","Descubre el destino":"Explore the destination","Agenda":"Events","Colaboradores":"Partners","Promociones":"Offers","Instalar la guía":"Install the guide","Tu estancia empieza aquí.":"Your stay starts here.","Explorar la guía":"Explore the guide","Bienvenido a El Almendro":"Welcome to El Almendro","Tu alojamiento":"Your apartment","Llegada y estancia":"Arrival and stay","Información útil":"Useful information","Mucho más que un alojamiento":"More than accommodation","Restaurantes y cafeterías":"Restaurants and cafés","Qué visitar":"Things to see","Servicios cercanos":"Nearby services","Qué hacer durante tu estancia":"Things to do during your stay","Descubre nuestros colaboradores":"Discover our partners","Promociones y experiencias":"Offers and experiences","Tu guía, siempre a mano":"Your guide, always at hand","Volver arriba":"Back to top"},

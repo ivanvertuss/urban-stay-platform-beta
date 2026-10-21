@@ -40,7 +40,7 @@ Deno.serve(async req=>{
  const isApproved=(type:string,id:string)=>allowed.has(type+":"+id);
  const now=Date.now();
  const agenda=(events.data||[]).filter(x=>isApproved("event",x.id)&&(!x.city||norm(x.city)==="vigo")).map(x=>({title:x.title,description:x.description,url:validUrl(x.source_url),published:true,active:true,expiresAt:x.ends_at||null}));
- const own=(collaborators.data||[]).filter(x=>isApproved("property_collaborator",x.id)&&norm(x.city)==="vigo")).map(x=>({title:x.name,description:x.description,url:validUrl(x.website),published:true,active:true}));
+ const own=(collaborators.data||[]).filter(x=>isApproved("property_collaborator",x.id)&&norm(x.city)==="vigo").map(x=>({title:x.name,description:x.description,url:validUrl(x.website),published:true,active:true}));
  const activePartners=(partners.data||[]).filter(x=>isApproved("urban_stay_partner",x.id)&&applicable(x)&&(!x.starts_at||Date.parse(x.starts_at)<=now)&&(!x.ends_at||Date.parse(x.ends_at)>=now));
  const commercial=activePartners.map(x=>({title:x.name,description:x.description,url:validUrl(x.website),published:true,active:true,expiresAt:x.ends_at||null}));
  const promotions=[...(collaborators.data||[]).filter(x=>isApproved("property_collaborator",x.id)&&x.is_active&&norm(x.city)==="vigo"&&x.promotion).map(x=>({title:x.name,description:x.promotion,published:true,active:true})),...activePartners.filter(x=>x.promotion).map(x=>({title:x.name,description:x.promotion,published:true,active:true,expiresAt:x.ends_at||null}))];

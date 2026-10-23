@@ -17,7 +17,7 @@ const messages={
 const msg=key=>(messages[ROOT.lang]||messages.es)[key];
 const statuses=new Map();
 function refreshLanguage(){for(const [section,key] of statuses)setStatus(section,key);for(const node of document.querySelectorAll("[data-more-link]"))node.textContent=msg("more")}
-document.getElementById("guide-language")?.addEventListener("change",()=>queueMicrotask(refreshLanguage));
+window.addEventListener("urbanstayguide:languagechange",refreshLanguage);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function setStatus(section,key){
  statuses.set(section,key);

@@ -83,10 +83,18 @@ function allProps(){
   const st=getPropState();
   return getUserProps()
     .filter(p=>st[p.id]?.deleted!==true)
-    .map(p=>({...p,status:st[p.id]?.status||p.status||'draft'}));
+    .map(p=>({...p,status:p.status||'draft'}));
 }
-function setPropertyStatus(id,status){
- const st=getPropState();st[id]={...(st[id]||{}),status,deleted:false};savePropState(st);render();toast(status==='inactive'?'Propiedad inactiva':'Propiedad activa');
+async function setPropertyStatus(id,status){
+ if(!DB){toast('No hay conexión con Supabase. No se ha cambiado el estado.');return}
+ const {data:{user},error:authError}=await DB.auth.getUser();
+ if(authError||!user){toast('Inicia sesión de nuevo para cambiar el estado.');return}
+ const {data,error}=await DB.from('properties').update({status}).eq('id',id).eq('owner_id',user.id).select('id,status').maybeSingle();
+ if(error||!data){console.error('Error updating property status',error);toast('No se pudo cambiar el estado.');return}
+ const props=getUserProps();const index=props.findIndex(p=>String(p.id)===String(id));
+ if(index>=0){props[index]={...props[index],status:data.status};saveUserProps(props)}
+ const st=getPropState();if(st[id]){delete st[id].status;savePropState(st)}
+ render();toast(status==='inactive'?'Propiedad inactiva':'Estado actualizado');
 }
 async function deleteProperty(id){
  const p=allProps().find(x=>String(x.id)===String(id));if(!p)return;

@@ -654,10 +654,15 @@ const STEPS=[
 ];
 
 async function openWizard(){
- draft=loadDraft(); state.wizardStep=0; state.previewOpen=false;
+ // Keep the selected property's in-memory draft: loading a generic browser draft
+ // here could silently replace its contents before the editor is displayed.
+ if(!state.selectedProperty)draft=loadDraft();
+ state.wizardStep=0; state.previewOpen=false;
  if(state.selectedProperty)await loadPropertyBenefits(state.selectedProperty);
  renderWizard();
- const dlg=$('#propertyWizard'); if(dlg && !dlg.open)dlg.showModal();
+ const dlg=$('#propertyWizard');
+ if(!dlg)throw new Error('Property wizard dialog is missing');
+ if(!dlg.open)dlg.showModal();
 }
  function openNewPropertyWizard(){
   state.selectedProperty=null;

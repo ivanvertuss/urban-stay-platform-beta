@@ -1,8 +1,8 @@
-// Guest guide public-feed candidate. Keep JWT verification enabled until audited.
+// Public, read-only guest feed. Only explicitly approved, active and in-scope content may be returned.
 // Requires server-only SUPABASE_SERVICE_ROLE_KEY; never expose it to browser.
 // Publication and approval are checked on every request.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-const headers={"x-content-type-options":"nosniff","referrer-policy":"no-referrer","content-type":"application/json; charset=utf-8","access-control-allow-origin":"*","access-control-allow-methods":"GET, OPTIONS","access-control-allow-headers":"content-type, apikey, authorization","cache-control":"no-store"};
+const headers={"vary":"origin","x-content-type-options":"nosniff","referrer-policy":"no-referrer","content-type":"application/json; charset=utf-8","access-control-allow-origin":"*","access-control-allow-methods":"GET, OPTIONS","access-control-allow-headers":"content-type, apikey, authorization","cache-control":"no-store"};
 const respond=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers});
 const validUrl=(value:unknown)=>{if(typeof value!=="string")return null;try{const u=new URL(value);return u.protocol==="https:"?u.href:null}catch{return null}};
 const norm=(v:unknown)=>String(v??"").trim().toLocaleLowerCase("es");
@@ -25,7 +25,7 @@ Deno.serve(async req=>{
   // Only stage, HTTP status and machine code: never log credentials, headers, SQL or row contents.
   const status=typeof err?.status==="number"?err.status:null;
   const code=typeof err?.code==="string"&&/^[A-Za-z0-9_]{1,40}$/.test(err.code)?err.code:null;
-  console.error(JSON.stringify({component:"guest-guide-public",traceId,stage,status,code}));
+  console.error(JSON.stringify({component:"guest-guide-feed",traceId,stage,status,code}));
   return respond({error:"Service unavailable",traceId},503);
  };
  const url=Deno.env.get("SUPABASE_URL"),key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");

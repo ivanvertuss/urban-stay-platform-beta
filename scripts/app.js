@@ -83,10 +83,12 @@ function allProps(){
   const st=getPropState();
   return getUserProps()
     .filter(p=>st[p.id]?.deleted!==true)
-    .map(p=>({...p,status:st[p.id]?.status||p.status||'draft'}));
+    .map(p=>({...p,status:p.status||'draft'}));
 }
 function setPropertyStatus(id,status){
- const st=getPropState();st[id]={...(st[id]||{}),status,deleted:false};savePropState(st);render();toast(status==='inactive'?'Propiedad inactiva':'Propiedad activa');
+ // Do not fake server state through localStorage; this action requires a mapped database workflow.
+ console.warn('Status transition requires server workflow',id,status);
+ toast('Cambio de estado temporalmente no disponible. La propiedad no se ha modificado.');
 }
 async function deleteProperty(id){
  const p=allProps().find(x=>String(x.id)===String(id));if(!p)return;
@@ -324,6 +326,9 @@ if(data.session){
 
   const localProps=properties.map(p=>{
     const content=normalizeDraft(contentMap.get(p.id)||{});
+    content.name=content.name||p.name;
+    content.city=content.city||p.city||'';
+    content.country=content.country||p.country||'';
 
     return {
       id:p.id,
@@ -334,7 +339,8 @@ if(data.session){
         ? new Date(p.updated_at).toLocaleDateString('es-ES')
         : new Date().toLocaleDateString('es-ES'),
       rating:'—',
-      status:p.status||'draft',
+      status:p.status==='published'?(p.review_status==='approved'?'active':'published'):p.status||'draft',
+      reviewStatus:p.review_status||'pending',
       wizardData:content
     };
   });
@@ -645,10 +651,11 @@ const STEPS=[
 ];
 
 async function openWizard(){
- draft=loadDraft(); state.wizardStep=0; state.previewOpen=false;
+ if(!state.selectedProperty)draft=loadDraft();
+ state.wizardStep=0; state.previewOpen=false;
  if(state.selectedProperty)await loadPropertyBenefits(state.selectedProperty);
  renderWizard();
- const dlg=$('#propertyWizard'); if(dlg && !dlg.open)dlg.showModal();
+ const dlg=$('#propertyWizard'); if(!dlg)throw new Error('Property editor dialog missing'); if(!dlg.open)dlg.showModal();
 }
  function openNewPropertyWizard(){
   state.selectedProperty=null;
@@ -1121,7 +1128,7 @@ $('#newPropertyTop')?.addEventListener('click',openNewPropertyWizard);
  $$('[data-request-changes]').forEach(b=>b.onclick=e=>{e.stopPropagation();moderationAction(b.dataset.requestChanges,'changes_requested')});
  $$('[data-status-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();setPropertyStatus(b.dataset.statusProperty,b.dataset.status)});
  $$('[data-delete-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();deleteProperty(b.dataset.deleteProperty)});
- $$('[data-edit-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();const p=allProps().find(y=>String(y.id)===String(b.dataset.editProperty));if(!p?.wizardData){toast('No se pudo abrir la propiedad.');return}state.selectedProperty=p.id;draft=normalizeDraft(JSON.parse(JSON.stringify(p.wizardData)));saveDraft();openWizard()});
+ $('[data-edit-property]').forEach(b=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();const p=allProps().find(y=>String(y.id)===String(b.dataset.editProperty));if(!p){toast('No se encontro la propiedad.');return}try{state.selectedProperty=p.id;draft=normalizeDraft(p.wizardData||{});await openWizard()}catch(err){console.error('Property editor:',err);toast('No se pudo abrir el editor. No se han cambiado los datos.')}});
  $$('[data-property-actions]').forEach(x=>x.onclick=e=>e.stopPropagation());
 $$('[data-open-property]').forEach(x=>x.onclick=()=>{
   const p=allProps().find(y=>y.id===x.dataset.openProperty);

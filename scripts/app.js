@@ -328,6 +328,10 @@ if(data.session){
 
   const localProps=properties.map(p=>{
     const content=normalizeDraft(contentMap.get(p.id)||{});
+    // Keep the property identity from the authoritative record even when older content is incomplete.
+    content.name=content.name||p.name;
+    content.city=content.city||p.city||'';
+    content.country=content.country||p.country||'';
 
     return {
       id:p.id,
@@ -338,7 +342,8 @@ if(data.session){
         ? new Date(p.updated_at).toLocaleDateString('es-ES')
         : new Date().toLocaleDateString('es-ES'),
       rating:'—',
-      status:p.status||'draft',
+      status:p.status==='published'?(p.review_status==='approved'?'active':'published'):p.status||'draft',
+      reviewStatus:p.review_status||'pending',
       wizardData:content
     };
   });

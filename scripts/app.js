@@ -83,7 +83,7 @@ function allProps(){
   const st=getPropState();
   return getUserProps()
     .filter(p=>st[p.id]?.deleted!==true)
-    .map(p=>({...p,status:st[p.id]?.status||p.status||'draft'}));
+    .map(p=>({...p,status:p.status||'draft'}));
 }
 function setPropertyStatus(id,status){
  const st=getPropState();st[id]={...(st[id]||{}),status,deleted:false};savePropState(st);render();toast(status==='inactive'?'Propiedad inactiva':'Propiedad activa');
@@ -334,7 +334,8 @@ if(data.session){
         ? new Date(p.updated_at).toLocaleDateString('es-ES')
         : new Date().toLocaleDateString('es-ES'),
       rating:'—',
-      status:p.status||'draft',
+      status:p.status==='published'?(p.review_status==='approved'?'active':'published'):p.status||'draft',
+      reviewStatus:p.review_status||'pending',
       wizardData:content
     };
   });
@@ -645,7 +646,8 @@ const STEPS=[
 ];
 
 async function openWizard(){
- draft=loadDraft(); state.wizardStep=0; state.previewOpen=false;
+ if(!state.selectedProperty)draft=loadDraft();
+ state.wizardStep=0; state.previewOpen=false;
  if(state.selectedProperty)await loadPropertyBenefits(state.selectedProperty);
  renderWizard();
  const dlg=$('#propertyWizard'); if(dlg && !dlg.open)dlg.showModal();

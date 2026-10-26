@@ -1117,8 +1117,8 @@ function bindPage(){
 $('#newProperty')?.addEventListener('click',openNewPropertyWizard);
 $('#newPropertyTop')?.addEventListener('click',openNewPropertyWizard);
  $('#openModeration')?.addEventListener('click',()=>nav('moderation'));
- $('[data-publication-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();managePublicPage(b.dataset.publicationProperty)});
- $('[data-send-review]').forEach(b=>b.onclick=e=>{e.stopPropagation();sendForReview(b.dataset.sendReview)});
+ $$('[data-publication-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();managePublicPage(b.dataset.publicationProperty)});
+ $$('[data-send-review]').forEach(b=>b.onclick=e=>{e.stopPropagation();sendForReview(b.dataset.sendReview)});
  $$('[data-approve]').forEach(b=>b.onclick=e=>{e.stopPropagation();moderationAction(b.dataset.approve,'approved')});
  $$('[data-request-changes]').forEach(b=>b.onclick=e=>{e.stopPropagation();moderationAction(b.dataset.requestChanges,'changes_requested')});
  $$('[data-status-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();setPropertyStatus(b.dataset.statusProperty,b.dataset.status)});

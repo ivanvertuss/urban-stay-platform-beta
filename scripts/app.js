@@ -1123,7 +1123,7 @@ $('#newPropertyTop')?.addEventListener('click',openNewPropertyWizard);
  $$('[data-request-changes]').forEach(b=>b.onclick=e=>{e.stopPropagation();moderationAction(b.dataset.requestChanges,'changes_requested')});
  $$('[data-status-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();setPropertyStatus(b.dataset.statusProperty,b.dataset.status)});
  $$('[data-delete-property]').forEach(b=>b.onclick=e=>{e.stopPropagation();deleteProperty(b.dataset.deleteProperty)});
- $('[data-edit-property]').forEach(b=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();const p=allProps().find(y=>String(y.id)===String(b.dataset.editProperty));if(!p){toast('No se encontro la propiedad.');return}try{state.selectedProperty=p.id;draft=normalizeDraft(p.wizardData||{});await openWizard()}catch(err){console.error('Property editor:',err);toast('No se pudo abrir el editor. No se han cambiado los datos.')}});
+ $$('[data-edit-property]').forEach(b=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();const p=allProps().find(y=>String(y.id)===String(b.dataset.editProperty));if(!p){toast('No se encontro la propiedad.');return}try{state.selectedProperty=p.id;draft=normalizeDraft(p.wizardData||{});await openWizard()}catch(err){console.error('Property editor:',err);toast('No se pudo abrir el editor. No se han cambiado los datos.')}});
  $$('[data-property-actions]').forEach(x=>x.onclick=e=>e.stopPropagation());
 $$('[data-open-property]').forEach(x=>x.onclick=()=>{
   const p=allProps().find(y=>y.id===x.dataset.openProperty);

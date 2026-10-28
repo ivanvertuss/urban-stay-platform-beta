@@ -11,6 +11,8 @@ Deno.serve(async req=>{
  const url=Deno.env.get("SUPABASE_URL"),secret=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
  if(!url||!secret)return reply({error:"Server configuration missing"},503);
  if(req.headers.get("authorization")!=="Bearer "+secret)return reply({error:"Unauthorized"},401);
+ const requestedProvider=(()=>{try{return new URL(req.url).searchParams.get("provider")}catch{return null}})();
+ if(requestedProvider!==null&&!["ticketmaster","city"].includes(requestedProvider))return reply({error:"Invalid provider"},400);
  const db=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
  const {data:pubs,error:pubError}=await db.from("property_publications").select("property_id").eq("is_published",true);
  if(pubError)return reply({error:"Publications unavailable"},503);
@@ -21,7 +23,7 @@ Deno.serve(async req=>{
  let imported=0;const failures:string[]=[];
  for(const p of props||[]){
   if(!p.city)continue;
-  for(const provider of ["ticketmaster","city"]){
+  for(const provider of (requestedProvider?[requestedProvider]:["ticketmaster","city"])){
    try{
     const response=await fetch(url+"/functions/v1/agenda-city",{
      method:"POST",headers:{"authorization":"Bearer "+secret,"apikey":secret,"content-type":"application/json"},

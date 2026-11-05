@@ -24,5 +24,6 @@ async function render(){
   box.querySelectorAll('[data-hide]').forEach(b=>b.onclick=async()=>{if(!confirm('¿Ocultar esta promoción de la guía?'))return;const {error}=await db.from('property_collaborators').update({guest_publication_enabled:false}).eq('id',b.dataset.hide);if(error)alert(error.message);else{section.remove();render()}});
  }catch(e){box.textContent='No se pudieron cargar los avisos: '+e.message}
 }
+window.URBAN_STAY_PROMOTION_NOTICES={render};
 new MutationObserver(()=>{if(document.querySelector('.usp-urban-admin-page'))render()}).observe(document.body,{childList:true,subtree:true});
 })();

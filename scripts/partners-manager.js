@@ -93,7 +93,7 @@ function bindBase(){
    if(metersMatch){const n=Number(metersMatch[1].replace(',','.'));distanceMeters=metersMatch[2].toLowerCase()==='km'?Math.round(n*1000):Math.round(n)}
    const payload={
     property_id:selectedPropertyId,owner_id:user.id,
-    name:ai.name||name,city:ai.city||city,promotion:promotion||null,
+    name:name,city:city,promotion:promotion||null,
     category:ai.type||null,description:ai.description||null,address:ai.address||null,
     website:ai.website||null,image_url:ai.imageUrl||null,distance_meters:distanceMeters,
     enrichment_status:'completed',is_active:true

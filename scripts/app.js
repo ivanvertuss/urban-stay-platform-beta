@@ -631,13 +631,22 @@ function properties(){
    </div>
  </section>`;
 } 
+function settingsPage(){
+ const owner=getOwner()||{};
+ const displayName=[owner.firstName,owner.lastName].filter(Boolean).join(' ')||'Cuenta Urban Stay';
+ const langs=[['es','Español'],['en','English'],['fr','Français'],['de','Deutsch'],['it','Italiano'],['pt','Português']];
+ return `<section class="page"><div class="page-title"><div><h1>Configuración</h1><p>Preferencias de tu cuenta y estado de las opciones disponibles.</p></div></div>
+ <article class="card"><div class="section-label">CUENTA</div><h3>${esc(displayName)}</h3><p>Modo de interfaz: <strong>${state.admin?'Administración':'Propietario'}</strong></p><p>Los permisos reales dependen de la cuenta autenticada y de las políticas del servidor.</p></article>
+ <article class="card"><div class="section-label">IDIOMA DE LA INTERFAZ</div><p>Elige el idioma que utilizarás al gestionar Urban Stay desde este navegador.</p><label for="settingsLanguage">Idioma</label><select id="settingsLanguage" class="input" style="display:block;max-width:320px;width:100%;padding:12px;margin-top:8px">${langs.map(([code,name])=>`<option value="${code}" ${state.lang===code?'selected':''}>${name}</option>`).join('')}</select><p id="settingsLanguageStatus" role="status">Preferencia guardada en este navegador.</p></article>
+ <article class="card"><div class="section-label">SEGURIDAD Y NOTIFICACIONES</div><p>Las notificaciones operativas se gestionan desde la campana superior. Para cerrar sesión, utiliza el menú de tu perfil.</p><p>La gestión avanzada de permisos y preferencias de avisos se incorporará tras su revisión de seguridad.</p></article></section>`;
+}
 function generic(route){
  const labels={guide:'Constructor de guía',access:'Gestor de accesos',discover:'Descubrir',agenda:'Agenda',partners:'Colaboradores',lab:'Urban Stay Lab',settings:'Configuración'};
  return `<section class="page"><div class="page-title"><div><h1>${labels[route]||route}</h1><p>Módulo preparado en la nueva arquitectura v1.0 RC.</p></div></div><article class="card"><div class="section-label">ESTADO DEL MÓDULO</div><p>Esta versión se centra en estabilizar cuenta, alta de propiedad y vista previa. El módulo se conserva para las siguientes iteraciones.</p></article></section>`;
 }
 function render(){
  const c=$('#appContent'); if(!c)return;
- c.innerHTML=state.route==='dashboard'?dashboard():state.route==='properties'?properties():state.route==='moderation'?moderationPanel():generic(state.route);
+ c.innerHTML=state.route==='dashboard'?dashboard():state.route==='properties'?properties():state.route==='moderation'?moderationPanel():state.route==='settings'?settingsPage():generic(state.route);
  bindPage(); applyStatic();
 }
 
@@ -1113,6 +1122,7 @@ async function managePublicPage(id){
  window.open(url,'_blank','noopener');
 }
 function bindPage(){
+ $('#settingsLanguage')?.addEventListener('change',e=>{const code=e.target.value;if(!I18N[code])return;state.lang=code;localStorage.setItem(KEYS.lang,code);const top=$('#ownerLanguage');if(top)top.value=code;applyStatic();const status=$('#settingsLanguageStatus');if(status)status.textContent='Idioma guardado correctamente en este navegador.';});
  $$('[data-route]').forEach(b=>b.onclick=()=>nav(b.dataset.route));
 $('#newProperty')?.addEventListener('click',openNewPropertyWizard);
 $('#newPropertyTop')?.addEventListener('click',openNewPropertyWizard);

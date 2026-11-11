@@ -749,7 +749,7 @@ function livePreviewHtml(){
  return `<div class="live-preview-head"><div><span class="eyebrow">VISTA PREVIA EN VIVO</span><b>${templateName(draft.template)}</b></div><div class="live-preview-actions"><div class="device-switch"><button type="button" data-device="mobile" class="${state.previewDevice==='mobile'?'active':''}">📱</button><button type="button" data-device="desktop" class="${state.previewDevice==='desktop'?'active':''}">💻</button></div><button type="button" id="closeLivePreview" class="live-preview-close" aria-label="Cerrar vista previa">×</button></div></div><div class="preview-stage"><div class="guest-phone ${state.previewDevice==='desktop'?'desktop':''}" id="guestPhone">${guestPreviewMarkup()}</div></div>`;
 }
 function guestBenefitsMarkup(){
- const mine=(Array.isArray(state.guestBenefits)?state.guestBenefits:[]).filter(x=>x.is_active!==false).map(x=>({...x,__urban:false}));
+ const mine=(Array.isArray(state.guestBenefits)?state.guestBenefits:[]).filter(x=>x.is_active!==false && x.moderation_status!=='rejected').map(x=>({...x,__urban:false}));
  const urban=(Array.isArray(state.urbanBenefits)?state.urbanBenefits:[]).filter(x=>x.is_active!==false).map(x=>({...x,__urban:true}));
  const rows=[...mine,...urban];
  if(!rows.length)return '';

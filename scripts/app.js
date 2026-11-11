@@ -640,13 +640,32 @@ function settingsPage(){
  <article class="card"><div class="section-label">IDIOMA DE LA INTERFAZ</div><p>Elige el idioma que utilizarás al gestionar Urban Stay desde este navegador.</p><label for="settingsLanguage">Idioma</label><select id="settingsLanguage" class="input" style="display:block;max-width:320px;width:100%;padding:12px;margin-top:8px">${langs.map(([code,name])=>`<option value="${code}" ${state.lang===code?'selected':''}>${name}</option>`).join('')}</select><p id="settingsLanguageStatus" role="status">Preferencia guardada en este navegador.</p></article>
  <article class="card"><div class="section-label">SEGURIDAD Y NOTIFICACIONES</div><p>Las notificaciones operativas se gestionan desde la campana superior. Para cerrar sesión, utiliza el menú de tu perfil.</p><p>La gestión avanzada de permisos y preferencias de avisos se incorporará tras su revisión de seguridad.</p></article></section>`;
 }
+const LAB_KEY='usp-lab-ideas-v1';
+function labIdeas(){try{const x=JSON.parse(localStorage.getItem(LAB_KEY)||'[]');return Array.isArray(x)?x:[]}catch{return []}}
+function saveLabIdeas(items){try{localStorage.setItem(LAB_KEY,JSON.stringify(items));return true}catch{return false}}
+function labPage(){
+ const items=labIdeas();
+ return `<section class="page"><div class="page-title"><div><h1>Urban Stay Lab</h1><p>Espacio interno para organizar futuras mejoras y experimentos, sin alterar las funciones publicadas.</p></div></div>
+ <article class="card"><div class="section-label">NUEVA PROPUESTA</div><p>Registra una idea para evaluarla antes de incorporarla a Urban Stay.</p>
+ <form id="labIdeaForm"><label for="labIdeaTitle">Nombre de la mejora</label><input id="labIdeaTitle" required maxlength="100" placeholder="Ej. Recomendaciones inteligentes por ciudad" style="display:block;width:100%;max-width:650px;padding:12px;margin:8px 0 12px;border:1px solid #cbd5e1;border-radius:9px">
+ <label for="labIdeaNotes">Descripción</label><textarea id="labIdeaNotes" maxlength="1200" rows="3" placeholder="Qué problema resuelve y cómo debería funcionar" style="display:block;width:100%;max-width:650px;padding:12px;margin:8px 0 12px;border:1px solid #cbd5e1;border-radius:9px"></textarea>
+ <button class="btn primary" type="submit">＋ Guardar propuesta</button></form></article>
+ <article class="card"><div class="section-label">PROPUESTAS Y EXPERIMENTOS · ${items.length}</div>
+ ${items.length?items.map(x=>`<div style="border-top:1px solid #e2e8f0;padding:16px 0"><strong>${esc(x.title)}</strong><p style="white-space:pre-wrap">${esc(x.notes)}</p><label>Estado <select data-lab-status="${esc(x.id)}" style="padding:8px;margin:0 12px"><option value="idea" ${x.status==='idea'?'selected':''}>Idea</option><option value="review" ${x.status==='review'?'selected':''}>En evaluación</option><option value="ready" ${x.status==='ready'?'selected':''}>Lista para desarrollar</option></select></label><button type="button" class="btn secondary" data-lab-delete="${esc(x.id)}">Eliminar</button></div>`).join(''):'<p>Todavía no hay propuestas registradas.</p>'}
+ <p><small>Las propuestas se guardan únicamente en este navegador. No se publican ni activan funciones automáticamente.</small></p></article></section>`;
+}
+function bindLab(){
+ $('#labIdeaForm')?.addEventListener('submit',e=>{e.preventDefault();const title=$('#labIdeaTitle')?.value.trim(),notes=$('#labIdeaNotes')?.value.trim()||'';if(!title)return;const items=labIdeas();items.unshift({id:String(Date.now())+'-'+Math.random().toString(36).slice(2,8),title,notes,status:'idea'});if(!saveLabIdeas(items)){toast('No se pudo guardar la propuesta');return}render();toast('Propuesta guardada en este navegador')});
+ $('[data-lab-status]').forEach(el=>el.addEventListener('change',()=>{const items=labIdeas();const item=items.find(x=>x.id===el.dataset.labStatus);if(item){item.status=el.value;if(!saveLabIdeas(items))toast('No se pudo guardar el estado')}}));
+ $('[data-lab-delete]').forEach(el=>el.addEventListener('click',()=>{if(!confirm('¿Eliminar esta propuesta del navegador?'))return;saveLabIdeas(labIdeas().filter(x=>x.id!==el.dataset.labDelete));render()}));
+}
 function generic(route){
  const labels={guide:'Constructor de guía',access:'Gestor de accesos',discover:'Descubrir',agenda:'Agenda',partners:'Colaboradores',lab:'Urban Stay Lab',settings:'Configuración'};
  return `<section class="page"><div class="page-title"><div><h1>${labels[route]||route}</h1><p>Módulo preparado en la nueva arquitectura v1.0 RC.</p></div></div><article class="card"><div class="section-label">ESTADO DEL MÓDULO</div><p>Esta versión se centra en estabilizar cuenta, alta de propiedad y vista previa. El módulo se conserva para las siguientes iteraciones.</p></article></section>`;
 }
 function render(){
  const c=$('#appContent'); if(!c)return;
- c.innerHTML=state.route==='dashboard'?dashboard():state.route==='properties'?properties():state.route==='moderation'?moderationPanel():state.route==='settings'?settingsPage():generic(state.route);
+ c.innerHTML=state.route==='dashboard'?dashboard():state.route==='properties'?properties():state.route==='moderation'?moderationPanel():state.route==='settings'?settingsPage():state.route==='lab'?labPage():generic(state.route);
  bindPage(); applyStatic();
 }
 
@@ -1122,6 +1141,7 @@ async function managePublicPage(id){
  window.open(url,'_blank','noopener');
 }
 function bindPage(){
+ if(state.route==='lab')bindLab();
  $('#settingsLanguage')?.addEventListener('change',e=>{const code=e.target.value;if(!I18N[code])return;state.lang=code;localStorage.setItem(KEYS.lang,code);const top=$('#ownerLanguage');if(top)top.value=code;applyStatic();const status=$('#settingsLanguageStatus');if(status)status.textContent='Idioma guardado correctamente en este navegador.';});
  $$('[data-route]').forEach(b=>b.onclick=()=>nav(b.dataset.route));
 $('#newProperty')?.addEventListener('click',openNewPropertyWizard);

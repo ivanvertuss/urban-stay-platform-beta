@@ -395,7 +395,7 @@ function syncOwner(){
  const b=$('.profile-button b'), av=$('.profile-button>span'), role=$('.profile-button small');
  if(b)b.textContent=`${o.firstName} ${o.lastName}`.trim();
  if(av)av.textContent=((o.firstName[0]||'')+(o.lastName[0]||'')).toUpperCase();
- if(role)role.textContent=tr('owner');
+ if(role)role.textContent=state.admin?'Administrador':tr('owner');
 }
 
  async function logout(){

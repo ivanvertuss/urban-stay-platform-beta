@@ -467,6 +467,7 @@ function applyStatic(){
 
 function nav(route){
  state.route=route;
+ if(route==='lab')loadLabIdeas();
  $$('.nav').forEach(b=>b.classList.toggle('active',b.dataset.route===route));
  $('#breadcrumb').textContent=`Urban Stay / ${tr(route==='properties'?'properties':route==='settings'?'settings':route==='agenda'?'agenda':route==='urban-partners'?'Acuerdos Urban Stay':route==='partners'?'partners':route==='discover'?'discover':route==='access'?'access':route==='guide'?'guide':route==='lab'?'lab':'dashboard')}`;
  render();
@@ -641,23 +642,59 @@ function settingsPage(){
  <article class="card"><div class="section-label">SEGURIDAD Y NOTIFICACIONES</div><p>Las notificaciones operativas se gestionan desde la campana superior. Para cerrar sesión, utiliza el menú de tu perfil.</p><p>La gestión avanzada de permisos y preferencias de avisos se incorporará tras su revisión de seguridad.</p></article></section>`;
 }
 const LAB_KEY='usp-lab-ideas-v1';
-function labIdeas(){try{const x=JSON.parse(localStorage.getItem(LAB_KEY)||'[]');return Array.isArray(x)?x:[]}catch{return []}}
-function saveLabIdeas(items){try{localStorage.setItem(LAB_KEY,JSON.stringify(items));return true}catch{return false}}
+let labRemoteIdeas=[],labLoaded=false,labError='',labLoading=false;
+function labIdeas(){return labRemoteIdeas}
+function labLocalIdeas(){try{const v=JSON.parse(localStorage.getItem(LAB_KEY)||'[]');return Array.isArray(v)?v:[]}catch{return []}}
+async function loadLabIdeas(){
+ if(labLoading)return;labLoading=true;labError='';
+ try{
+  if(!state.admin||!DB)throw Error('Acceso de administrador requerido');
+  const {data:auth,error:authError}=await DB.auth.getUser();
+  if(authError||!auth?.user)throw Error('Sesión caducada');
+  const old=labLocalIdeas();
+  for(const item of old){
+   if(!item.title||!item.id)continue;
+   const {error}=await DB.from('urban_stay_lab_ideas').upsert({legacy_key:String(item.id),title:String(item.title).slice(0,100),notes:String(item.notes||'').slice(0,1200),status:['idea','review','ready'].includes(item.status)?item.status:'idea',created_by:auth.user.id},{onConflict:'legacy_key',ignoreDuplicates:true});
+   if(error)throw error;
+  }
+  const {data,error}=await DB.from('urban_stay_lab_ideas').select('id,title,notes,status,created_at').order('created_at',{ascending:false});
+  if(error)throw error;
+  labRemoteIdeas=data||[];labLoaded=true;
+  if(old.length)localStorage.removeItem(LAB_KEY);
+ }catch(e){console.error('Lab sync',e);labError=e.message||'Error de sincronización';labLoaded=true}
+ finally{labLoading=false;if(state.route==='lab')render()}
+}
 function labPage(){
  const items=labIdeas();
  return `<section class="page"><div class="page-title"><div><h1>Urban Stay Lab</h1><p>Espacio interno para organizar futuras mejoras y experimentos, sin alterar las funciones publicadas.</p></div></div>
  <article class="card"><div class="section-label">NUEVA PROPUESTA</div><p>Registra una idea para evaluarla antes de incorporarla a Urban Stay.</p>
- <form id="labIdeaForm"><label for="labIdeaTitle">Nombre de la mejora</label><input id="labIdeaTitle" required maxlength="100" placeholder="Ej. Recomendaciones inteligentes por ciudad" style="display:block;width:100%;max-width:650px;padding:12px;margin:8px 0 12px;border:1px solid #cbd5e1;border-radius:9px">
+ ${labError?`<p role="alert">No se pudo sincronizar: ${esc(labError)}. La copia del navegador se conserva. <button type="button" id="labRetry">Reintentar</button></p>`:""}<form id="labIdeaForm"><label for="labIdeaTitle">Nombre de la mejora</label><input id="labIdeaTitle" required maxlength="100" placeholder="Ej. Recomendaciones inteligentes por ciudad" style="display:block;width:100%;max-width:650px;padding:12px;margin:8px 0 12px;border:1px solid #cbd5e1;border-radius:9px">
  <label for="labIdeaNotes">Descripción</label><textarea id="labIdeaNotes" maxlength="1200" rows="3" placeholder="Qué problema resuelve y cómo debería funcionar" style="display:block;width:100%;max-width:650px;padding:12px;margin:8px 0 12px;border:1px solid #cbd5e1;border-radius:9px"></textarea>
- <button class="btn primary" type="submit">＋ Guardar propuesta</button></form></article>
+ <button class="btn primary" type="submit" ${labError||!labLoaded?"disabled":""}>＋ Guardar propuesta</button></form></article>
  <article class="card"><div class="section-label">PROPUESTAS Y EXPERIMENTOS · ${items.length}</div>
- ${items.length?items.map(x=>`<div style="border-top:1px solid #e2e8f0;padding:16px 0"><strong>${esc(x.title)}</strong><p style="white-space:pre-wrap">${esc(x.notes)}</p><label>Estado <select data-lab-status="${esc(x.id)}" style="padding:8px;margin:0 12px"><option value="idea" ${x.status==='idea'?'selected':''}>Idea</option><option value="review" ${x.status==='review'?'selected':''}>En evaluación</option><option value="ready" ${x.status==='ready'?'selected':''}>Lista para desarrollar</option></select></label><button type="button" class="btn secondary" data-lab-delete="${esc(x.id)}">Eliminar</button></div>`).join(''):'<p>Todavía no hay propuestas registradas.</p>'}
- <p><small>Las propuestas se guardan únicamente en este navegador. No se publican ni activan funciones automáticamente.</small></p></article></section>`;
+ ${items.length?items.map(x=>`<div style="border-top:1px solid #e2e8f0;padding:16px 0"><strong>${esc(x.title)}</strong><p style="white-space:pre-wrap">${esc(x.notes)}</p><label>Estado <select data-lab-status="${esc(x.id)}" style="padding:8px;margin:0 12px"><option value="idea" ${x.status==='idea'?'selected':''}>Idea</option><option value="review" ${x.status==='review'?'selected':''}>En evaluación</option><option value="ready" ${x.status==='ready'?'selected':''}>Lista para desarrollar</option></select></label><button type="button" class="btn secondary" data-lab-delete="${esc(x.id)}">Eliminar</button></div>`).join(''):'<p>Todavía no hay propuestas sincronizadas.</p>'}
+ <p><small>Las propuestas se guardan en Supabase y solo las gestionan administradores autorizados.</small></p></article></section>`;
 }
 function bindLab(){
- $('#labIdeaForm')?.addEventListener('submit',e=>{e.preventDefault();const title=$('#labIdeaTitle')?.value.trim(),notes=$('#labIdeaNotes')?.value.trim()||'';if(!title)return;const items=labIdeas();items.unshift({id:String(Date.now())+'-'+Math.random().toString(36).slice(2,8),title,notes,status:'idea'});if(!saveLabIdeas(items)){toast('No se pudo guardar la propuesta');return}render();toast('Propuesta guardada en este navegador')});
- $('[data-lab-status]').forEach(el=>el.addEventListener('change',()=>{const items=labIdeas();const item=items.find(x=>x.id===el.dataset.labStatus);if(item){item.status=el.value;if(!saveLabIdeas(items))toast('No se pudo guardar el estado')}}));
- $('[data-lab-delete]').forEach(el=>el.addEventListener('click',()=>{if(!confirm('¿Eliminar esta propuesta del navegador?'))return;saveLabIdeas(labIdeas().filter(x=>x.id!==el.dataset.labDelete));render()}));
+ $('#labRetry')?.addEventListener('click',()=>loadLabIdeas());
+ $('#labIdeaForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();if(labError||!labLoaded)return;
+  const title=$('#labIdeaTitle')?.value.trim(),notes=$('#labIdeaNotes')?.value.trim()||'';if(!title)return;
+  const {data:auth,error:authError}=await DB.auth.getUser();
+  if(authError||!auth?.user){toast('Sesión caducada');return}
+  const {error}=await DB.from('urban_stay_lab_ideas').insert({title,notes,created_by:auth.user.id});
+  if(error){console.error(error);toast('Error al guardar en Supabase');return}
+  await loadLabIdeas();toast('Propuesta guardada en Supabase');
+ });
+ $$('[data-lab-status]').forEach(el=>el.addEventListener('change',async()=>{
+  const {error}=await DB.from('urban_stay_lab_ideas').update({status:el.value,updated_at:new Date().toISOString()}).eq('id',el.dataset.labStatus);
+  if(error){console.error(error);toast('No se pudo actualizar el estado')}await loadLabIdeas();
+ }));
+ $$('[data-lab-delete]').forEach(el=>el.addEventListener('click',async()=>{
+  if(!confirm('¿Eliminar definitivamente esta propuesta de Supabase?'))return;
+  const {error}=await DB.from('urban_stay_lab_ideas').delete().eq('id',el.dataset.labDelete);
+  if(error){console.error(error);toast('No se pudo eliminar')}await loadLabIdeas();
+ }));
 }
 function generic(route){
  const labels={guide:'Constructor de guía',access:'Gestor de accesos',discover:'Descubrir',agenda:'Agenda',partners:'Colaboradores',lab:'Urban Stay Lab',settings:'Configuración'};

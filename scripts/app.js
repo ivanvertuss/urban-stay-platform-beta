@@ -1183,7 +1183,7 @@ async function managePublicPage(id){
 }
 function bindPage(){
  if(state.route==='lab')bindLab();
- $('[data-settings-pref]').forEach(el=>el.addEventListener('change',()=>{const prefs=settingsPrefs();prefs[el.dataset.settingsPref]=el.checked;const ok=saveSettingsPrefs(prefs);const status=$('#settingsPrefsStatus');if(status)status.textContent=ok?'Preferencias guardadas en este navegador.':'No se pudieron guardar las preferencias.';}));
+ $$('[data-settings-pref]').forEach(el=>el.addEventListener('change',()=>{const prefs=settingsPrefs();prefs[el.dataset.settingsPref]=el.checked;const ok=saveSettingsPrefs(prefs);const status=$('#settingsPrefsStatus');if(status)status.textContent=ok?'Preferencias guardadas en este navegador.':'No se pudieron guardar las preferencias.';}));
  $('#settingsLanguage')?.addEventListener('change',e=>{const code=e.target.value;if(!I18N[code])return;state.lang=code;localStorage.setItem(KEYS.lang,code);const top=$('#ownerLanguage');if(top)top.value=code;applyStatic();const status=$('#settingsLanguageStatus');if(status)status.textContent='Idioma guardado correctamente en este navegador.';});
  $$('[data-route]').forEach(b=>b.onclick=()=>nav(b.dataset.route));
 $('#newProperty')?.addEventListener('click',openNewPropertyWizard);

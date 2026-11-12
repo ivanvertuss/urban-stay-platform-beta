@@ -632,14 +632,18 @@ function properties(){
    </div>
  </section>`;
 } 
+const SETTINGS_PREF_KEY='usp-settings-preferences-v1';
+function settingsPrefs(){try{return Object.assign({moderation:true,agenda:true,product:true},JSON.parse(localStorage.getItem(SETTINGS_PREF_KEY)||'{}'))}catch{return {moderation:true,agenda:true,product:true}}}
+function saveSettingsPrefs(v){try{localStorage.setItem(SETTINGS_PREF_KEY,JSON.stringify(v));return true}catch{return false}}
 function settingsPage(){
  const owner=getOwner()||{};
+ const prefs=settingsPrefs();
  const displayName=[owner.firstName,owner.lastName].filter(Boolean).join(' ')||'Cuenta Urban Stay';
  const langs=[['es','Español'],['en','English'],['fr','Français'],['de','Deutsch'],['it','Italiano'],['pt','Português']];
  return `<section class="page"><div class="page-title"><div><h1>Configuración</h1><p>Preferencias de tu cuenta y estado de las opciones disponibles.</p></div></div>
  <article class="card"><div class="section-label">CUENTA</div><h3>${esc(displayName)}</h3><p>Modo de interfaz: <strong>${state.admin?'Administración':'Propietario'}</strong></p><p>Los permisos reales dependen de la cuenta autenticada y de las políticas del servidor.</p></article>
  <article class="card"><div class="section-label">IDIOMA DE LA INTERFAZ</div><p>Elige el idioma que utilizarás al gestionar Urban Stay desde este navegador.</p><label for="settingsLanguage">Idioma</label><select id="settingsLanguage" class="input" style="display:block;max-width:320px;width:100%;padding:12px;margin-top:8px">${langs.map(([code,name])=>`<option value="${code}" ${state.lang===code?'selected':''}>${name}</option>`).join('')}</select><p id="settingsLanguageStatus" role="status">Preferencia guardada en este navegador.</p></article>
- <article class="card"><div class="section-label">SEGURIDAD Y NOTIFICACIONES</div><p>Las notificaciones operativas se gestionan desde la campana superior. Para cerrar sesión, utiliza el menú de tu perfil.</p><p>La gestión avanzada de permisos y preferencias de avisos se incorporará tras su revisión de seguridad.</p></article></section>`;
+ <article class="card"><div class="section-label">PREFERENCIAS DE AVISOS</div><p>Selecciona las categorías de avisos que te interesan. Estas preferencias se guardan en este navegador y todavía no modifican las notificaciones del servidor.</p> ${[['moderation','Promociones pendientes de revisión'],['agenda','Agenda y sincronizaciones'],['product','Novedades de Urban Stay']].map(([k,label])=>`<label style="display:flex;gap:10px;align-items:center;margin:14px 0"><input type="checkbox" data-settings-pref="${k}" ${prefs[k]?'checked':''}> ${label}</label>`).join('')}<p id="settingsPrefsStatus" role="status">Preferencias guardadas en este navegador.</p></article><article class="card"><div class="section-label">SEGURIDAD</div><p>Las notificaciones operativas se consultan desde la campana superior. Para cerrar sesión, utiliza el menú de tu perfil.</p><p>Los permisos de administración se verifican mediante Supabase; el enlace de administración por sí solo no concede permisos.</p></article></section>`;
 }
 const LAB_KEY='usp-lab-ideas-v1';
 let labRemoteIdeas=[],labLoaded=false,labError='',labLoading=false;
@@ -1179,6 +1183,7 @@ async function managePublicPage(id){
 }
 function bindPage(){
  if(state.route==='lab')bindLab();
+ $('[data-settings-pref]').forEach(el=>el.addEventListener('change',()=>{const prefs=settingsPrefs();prefs[el.dataset.settingsPref]=el.checked;const ok=saveSettingsPrefs(prefs);const status=$('#settingsPrefsStatus');if(status)status.textContent=ok?'Preferencias guardadas en este navegador.':'No se pudieron guardar las preferencias.';}));
  $('#settingsLanguage')?.addEventListener('change',e=>{const code=e.target.value;if(!I18N[code])return;state.lang=code;localStorage.setItem(KEYS.lang,code);const top=$('#ownerLanguage');if(top)top.value=code;applyStatic();const status=$('#settingsLanguageStatus');if(status)status.textContent='Idioma guardado correctamente en este navegador.';});
  $$('[data-route]').forEach(b=>b.onclick=()=>nav(b.dataset.route));
 $('#newProperty')?.addEventListener('click',openNewPropertyWizard);
